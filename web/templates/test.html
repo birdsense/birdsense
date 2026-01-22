@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BirdSense - Test Classifier</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">
+                <img src="{{ url_for('static', filename='img/logo_dark.png') }}" alt="BirdSense">
+            </a>
+            <div class="nav-links">
+                <a href="/">Dashboard</a>
+                <a href="/test" class="active">Test</a>
+                <a href="/config">Config</a>
+                <a href="/api-docs" target="_blank">API</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <div class="test-options" style="margin-bottom: 16px;">
+                <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; color: var(--text-muted); cursor: pointer;">
+                    <input type="checkbox" id="skipStats" checked style="width: 18px; height: 18px;">
+                    <span>Test mode (don't save to statistics)</span>
+                </label>
+            </div>
+
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📷</div>
+                <div>
+                    <h3>Drag and drop an image here</h3>
+                    <p>or click to select a file</p>
+                </div>
+                <input type="file" id="fileInput" accept="image/*" hidden>
+            </div>
+
+            <div id="preview" class="preview-container" style="display: none;">
+                <img id="previewImage" src="" alt="Preview">
+            </div>
+
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Classifying...</p>
+            </div>
+
+            <div id="result" class="result-card" style="display: none;">
+                <div class="result-species" id="resultSpecies"></div>
+                <div class="result-confidence">
+                    <span class="confidence-label">Confidence:</span>
+                    <span class="confidence-value" id="resultConfidence"></span>
+                </div>
+                <div class="result-english" id="resultEnglish"></div>
+
+                <div class="top-predictions" id="topPredictions">
+                    <h4>Top 3 Predictions</h4>
+                    <div class="predictions-list" id="predictionsList"></div>
+                </div>
+            </div>
+
+            <div id="error" class="error-message" style="display: none;">
+                <div class="error-icon">⚠️</div>
+                <p id="errorText"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const previewImage = document.getElementById('previewImage');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+        const error = document.getElementById('error');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleFile(file);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                preview.style.display = 'block';
+                uploadArea.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+            classifyImage(file);
+        }
+
+        async function classifyImage(file) {
+            result.style.display = 'none';
+            error.style.display = 'none';
+            loading.style.display = 'flex';
+
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('skip_stats', document.getElementById('skipStats').checked);
+
+            try {
+                const response = await fetch('/api/classify', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                loading.style.display = 'none';
+
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+
+                showResult(data);
+            } catch (err) {
+                loading.style.display = 'none';
+                showError('Something went wrong during classification. Please try again.');
+            }
+        }
+
+        function showResult(data) {
+            document.getElementById('resultSpecies').textContent = data.species_en;
+            document.getElementById('resultConfidence').textContent = data.confidence + '%';
+            document.getElementById('resultEnglish').textContent = 'Dutch: ' + data.species_nl;
+
+            const confValue = document.getElementById('resultConfidence');
+            confValue.className = 'confidence-value';
+            if (data.confidence >= 80) {
+                confValue.classList.add('confidence-high');
+            } else if (data.confidence >= 60) {
+                confValue.classList.add('confidence-medium');
+            } else {
+                confValue.classList.add('confidence-low');
+            }
+
+            const predictionsList = document.getElementById('predictionsList');
+            predictionsList.innerHTML = '';
+            data.top_predictions.forEach((pred, index) => {
+                const item = document.createElement('div');
+                item.className = 'prediction-item';
+                item.innerHTML = `
+                    <span class="prediction-rank">${index + 1}</span>
+                    <span class="prediction-name">${pred.species_en}</span>
+                    <span class="prediction-conf">${pred.confidence}%</span>
+                `;
+                predictionsList.appendChild(item);
+            });
+
+            result.style.display = 'block';
+        }
+
+        function showError(message) {
+            document.getElementById('errorText').textContent = message;
+            error.style.display = 'block';
+        }
+
+        preview.addEventListener('click', () => {
+            preview.style.display = 'none';
+            result.style.display = 'none';
+            error.style.display = 'none';
+            uploadArea.style.display = 'flex';
+            fileInput.value = '';
+        });
+    </script>
+</body>
+</html>

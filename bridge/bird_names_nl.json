@@ -1,0 +1,688 @@
+{
+  "_comment": "Dutch translations for bird species. Keys match model output (title case). Source: IOC World Bird List / Sovon",
+
+  "Parus Major": "Koolmees",
+  "Azure Tit": "Azuurmees",
+  "Black-Capped Chickadee": "Zwartkopmees",
+  "Black Throated Bushtit": "Zwartkeelstaartmees",
+  "Tit Mouse": "Kuifmees",
+
+  "European Robin": "Roodborst",
+  "American Robin": "Amerikaanse Roodborst",
+  "Japanese Robin": "Japanse Roodborst",
+  "Dusky Robin": "Vale Roodborst",
+  "Pink Robin": "Roze Roodborst",
+  "Eastern Yellow Robin": "Oostelijke Gele Vliegenvanger",
+
+  "Common Starling": "Spreeuw",
+  "Bali Starling": "Bali-spreeuw",
+  "Cape Glossy Starling": "Kaapse Glansspreeuw",
+  "Superb Starling": "Superbe Spreeuw",
+  "Violet Backed Starling": "Amethystglansspreeuw",
+
+  "House Sparrow": "Huismus",
+  "Java Sparrow": "Rijstvogel",
+  "Chipping Sparrow": "Musgors",
+  "Black-Throated Sparrow": "Zwartkeelgors",
+  "White Throated Sparrow": "Witkeelgors",
+  "White Crowned Sparrow": "Witkruingors",
+  "Song Sparrow": "Zangvinkje",
+
+  "Eurasian Magpie": "Ekster",
+  "Iberian Magpie": "Iberische Ekster",
+  "Azure Jay": "Azuurblauwe Gaai",
+  "Green Jay": "Groene Gaai",
+  "Green Magpie": "Groene Ekster",
+  "Taiwan Magpie": "Taiwanese Ekster",
+  "Sri Lanka Blue Magpie": "Sri Lankaanse Blauwe Ekster",
+  "Plush Crested Jay": "Pluimkuifgaai",
+  "Crow": "Kraai",
+
+  "American Goldfinch": "Amerikaanse Putter",
+  "European Goldfinch": "Putter",
+  "Gouldian Finch": "Gouldamadine",
+  "Double Barred Finch": "Uilvink",
+  "House Finch": "Mexicaanse Roodmus",
+  "Purple Finch": "Purpergoudvink",
+  "Red Browed Finch": "Roodwenkbrauwvink",
+  "Patagonian Sierra Finch": "Patagonische Berggors",
+
+  "Eurasian Bullfinch": "Goudvink",
+  "Hawfinch": "Appelvink",
+  "Evening Grosbeak": "Avondappelvink",
+  "Rose Breasted Grosbeak": "Rozeborst Kardinaal",
+  "Blue Grosbeak": "Blauwe Bisschop",
+
+  "Northern Cardinal": "Rode Kardinaal",
+  "Pyrrhuloxia": "Woestijnkardinaal",
+
+  "Indigo Bunting": "Indigogors",
+  "Lazuli Bunting": "Lazuligors",
+  "Painted Bunting": "Paus",
+  "Lark Bunting": "Prairiegors",
+  "Orange Brested Bunting": "Oranjeborst Gors",
+  "Mckays Bunting": "McKays Sneeuwgors",
+
+  "Dark Eyed Junco": "Grijze Junco",
+
+  "Barn Owl": "Kerkuil",
+  "Long-Eared Owl": "Ransuil",
+  "Great Gray Owl": "Laplanduil",
+  "Snowy Owl": "Sneeuwuil",
+  "Striped Owl": "Gestreepte Uil",
+  "Oriental Bay Owl": "Oosterse Maskeruil",
+
+  "Bald Eagle": "Amerikaanse Zeearend",
+  "Golden Eagle": "Steenarend",
+  "Harpy Eagle": "Harpij",
+  "Philippine Eagle": "Filipijnse Arend",
+  "Ornate Hawk Eagle": "Pronkarend",
+  "Crested Serpent Eagle": "Indische Slangenarend",
+  "Grey Headed Fish Eagle": "Grijskopvisarend",
+
+  "Peregrine Falcon": "Slechtvalk",
+  "American Kestrel": "Amerikaanse Torenvalk",
+  "Gyrfalcon": "Giervalk",
+  "Merlin": "Smelleken",
+
+  "Northern Goshawk": "Havik",
+  "Red Shouldered Hawk": "Roodschouderbuizerd",
+  "Red Tailed Hawk": "Roodstaartbuizerd",
+  "Rough Leg Buzzard": "Ruigpootbuizerd",
+  "Crane Hawk": "Kransvalk",
+
+  "Osprey": "Visarend",
+
+  "Turkey Vulture": "Kalkoengier",
+  "Black Vulture": "Zwarte Gier",
+  "King Vulture": "Koningsgier",
+  "Indian Vulture": "Indische Gier",
+  "Palm Nut Vulture": "Palmgier",
+
+  "Barn Swallow": "Boerenzwaluw",
+  "Common House Martin": "Huiszwaluw",
+  "Sand Martin": "Oeverzwaluw",
+  "Tree Swallow": "Boomzwaluw",
+  "Violet Green Swallow": "Violetgroene Zwaluw",
+  "Stripped Swallow": "Gestreepte Zwaluw",
+
+  "Mallard Duck": "Wilde Eend",
+  "Mandrin Duck": "Mandarijneend",
+  "Wood Duck": "Carolina-eend",
+  "Harlequin Duck": "Harlekijneend",
+  "Teal Duck": "Taling",
+  "Cinnamon Teal": "Kaneeltaling",
+  "Baikal Teal": "Siberische Taling",
+  "Puna Teal": "Punataling",
+  "Bufflehead": "Buffelkopeend",
+  "Canvasback": "Grote Tafeleend",
+  "Red Headed Duck": "Roodkopeend",
+  "King Eider": "Koningseider",
+  "Surf Scoter": "Brilzee-eend",
+  "Barrows Goldeneye": "IJslandse Brilduiker",
+  "Hooded Merganser": "Kokardezaagbek",
+  "Knob Billed Duck": "Knobbeleend",
+  "Spotted Whistling Duck": "Gevlekte Fluiteend",
+  "Steamer Duck": "Stoombootschippereend",
+  "Ruddy Shelduck": "Casarca",
+
+  "Snow Goose": "Sneeuwgans",
+  "Egyptian Goose": "Nijlgans",
+  "Andean Goose": "Andesgans",
+  "Magpie Goose": "Ekstergans",
+  "Hawaiian Goose": "Hawaiigans",
+  "Canada Goose": "Grote Canadese Gans",
+
+  "Trumpter Swan": "Trompetzwaan",
+  "Black Swan": "Zwarte Zwaan",
+
+  "Puffin": "Papegaaiduiker",
+  "Atlantic Puffin": "Papegaaiduiker",
+  "Razorbill": "Alk",
+  "Little Auk": "Kleine Alk",
+  "Crested Auklet": "Kuifalk",
+  "Parakett Auklet": "Papegaaialk",
+
+  "Northern Gannet": "Jan-van-gent",
+  "Northern Fulmar": "Noordse Stormvogel",
+  "Albatross": "Albatros",
+  "Ashy Storm Petrel": "Vale Stormvogel",
+  "Black Vented Shearwater": "Zwartvleugelpijlstormvogel",
+  "Frigate": "Fregatvogel",
+
+  "Blue Heron": "Blauwe Reiger",
+  "Grey Heron": "Blauwe Reiger",
+  "Capped Heron": "Witkruinreiger",
+  "Squacco Heron": "Ralreiger",
+  "Chinese Pond Heron": "Chinese Ralreiger",
+
+  "Snowy Egret": "Amerikaanse Kleine Zilverreiger",
+  "Great Egret": "Grote Zilverreiger",
+
+  "Scarlet Ibis": "Rode Ibis",
+  "Glossy Ibis": "Zwarte Ibis",
+  "Bald Ibis": "Heremietibis",
+  "Asian Crested Ibis": "Japanse Ibis",
+
+  "Roseate Spoonbill": "Roze Lepelaar",
+  "Black Faced Spoonbill": "Zwartkopleplaar",
+
+  "White Stork": "Ooievaar",
+  "Marabou Stork": "Maraboe",
+  "Asian Openbill Stork": "Aziatische Gaper",
+  "Jabiru": "Jabiru",
+  "Shoebill": "Schoenbekooievaar",
+
+  "American Flamingo": "Amerikaanse Flamingo",
+  "Flamingo": "Flamingo",
+
+  "Dalmatian Pelican": "Kroeskoppelikaan",
+  "Pelican": "Pelikaan",
+
+  "Great Cormorant": "Aalscholver",
+  "Double Brested Cormarant": "Geoorde Aalscholver",
+  "Brandt Cormarant": "Brandts Aalscholver",
+  "Red Faced Cormorant": "Roodwangaalscholver",
+
+  "Anhinga": "Slangenhalsvogel",
+
+  "Common Loon": "IJsduiker",
+  "Great Crested Grebe": "Fuut",
+  "Clarks Grebe": "Clarks Fuut",
+  "Black-Necked Grebe": "Geoorde Fuut",
+
+  "Sandhill Crane": "Canadese Kraanvogel",
+  "Demoiselle Crane": "Jufferkraanvogel",
+  "Common Crane": "Kraanvogel",
+  "African Crowned Crane": "Grijze Kroonkraanvogel",
+
+  "Laughing Gull": "Lachmeeuw",
+  "California Gull": "Californische Meeuw",
+  "Ivory Gull": "Ivoormeeuw",
+
+  "Caspian Tern": "Reuzenstern",
+  "Inca Tern": "Inca-stern",
+  "Fairy Tern": "Feestern",
+
+  "Black Skimmer": "Amerikaanse Schaarbek",
+
+  "Crab Plover": "Krabplevier",
+  "Grey Plover": "Zilverplevier",
+  "Snowy Plover": "Amerikaanse Strandplevier",
+  "Masked Lapwing": "Maskerlapwing",
+  "Andean Lapwing": "Andeslapwing",
+  "Wattled Lapwing": "Lellapwing",
+
+  "Dunlin": "Bonte Strandloper",
+  "Red Knot": "Kanoet",
+  "Spoon Biled Sandpiper": "Lepelbek Strandloper",
+  "Short Billed Dowitcher": "Kleine Grijze Snip",
+  "Jack Snipe": "Bokje",
+  "American Avocet": "Amerikaanse Kluut",
+  "Banded Stilt": "Bandsteltlopertje",
+  "Black Necked Stilt": "Zwartnekkluut",
+  "Oyster Catcher": "Scholekster",
+  "African Oyster Catcher": "Afrikaanse Scholekster",
+
+  "Bar-Tailed Godwit": "Rosse Grutto",
+  "Whimbrel": "Regenwulp",
+  "Ibisbill": "Ibissnavel",
+
+  "Northern Jacana": "Noordelijke Jacana",
+  "Limpkin": "Koerlan",
+  "American Coot": "Amerikaanse Meerkoet",
+  "White Breasted Waterhen": "Witborstwaterral",
+  "White Browed Crake": "Witwenkbrauwral",
+  "Sora": "Soraral",
+  "Okinawa Rail": "Okinawaral",
+  "Takahe": "Takahe",
+  "Black Tail Crake": "Zwartstaartraal",
+
+  "Purple Gallinule": "Amerikaans Purperhoen",
+  "Purple Swamphen": "Purperkoet",
+
+  "Killdear": "Killdeerplevier",
+
+  "Pomarine Jaeger": "Middelste Jager",
+
+  "Mourning Dove": "Treurduif",
+  "Rock Dove": "Rotsduif",
+  "European Turtle Dove": "Zomertortel",
+  "Zebra Dove": "Zebraduif",
+  "Nicobar Pigeon": "Manenduif",
+  "Victoria Crowned Pigeon": "Victoria Kroonduif",
+  "Frill Back Pigeon": "Krulduif",
+  "Green Winged Dove": "Groenvleugeltortel",
+  "Jacobin Pigeon": "Jacobijnerduif",
+  "Scarlet Crowned Fruit Dove": "Roodkruinduif",
+
+  "Common Pheasant": "Fazant",
+  "Ring-Necked Pheasant": "Fazant",
+  "Golden Pheasant": "Goudfazant",
+  "Blood Pheasant": "Bloedfazant",
+  "Elliots Pheasant": "Elliots Fazant",
+  "Bulwers Pheasant": "Bulwers Fazant",
+  "Mikado Pheasant": "Mikadofazant",
+  "Bornean Pheasant": "Borneofazant",
+  "Swinhoes Pheasant": "Swinhoes Fazant",
+
+  "Peacock": "Pauw",
+
+  "Wild Turkey": "Wilde Kalkoen",
+  "Ocellated Turkey": "Oogpauw",
+
+  "Gray Partridge": "Patrijs",
+  "Chukar Partridge": "Aziatische Steenpatrijs",
+  "Chinese Bamboo Partridge": "Chinese Bamboepatrijs",
+  "Snow Partridge": "Sneeuwpatrijs",
+  "Crested Wood Partridge": "Kuifbospatrijs",
+
+  "California Quail": "Californische Kuifkwartel",
+  "Gambels Quail": "Gambels Kuifkwartel",
+  "Harlequin Quail": "Harlekijnkwartel",
+  "Masked Bobwhite": "Masker-bobwhite",
+
+  "Black Francolin": "Zwarte Frankolijn",
+
+  "Guineafowl": "Parelhoen",
+  "Vulturine Guineafowl": "Gierparlehoen",
+
+  "Bush Turkey": "Boskalkoen",
+  "Tasmanian Hen": "Tasmaans Hoen",
+
+  "Horned Guan": "Hoornguan",
+  "Band Tailed Guan": "Bandstaartguan",
+  "Blue Throated Piping Guan": "Blauwkeelpiepguan",
+  "Grey Headed Chachalaca": "Grijskop Chachalaca",
+  "Wattled Curassow": "Lelhokko",
+
+  "Greater Prairie Chicken": "Prairiehoen",
+  "Greator Sage Grouse": "Waaierhoen",
+  "Blue Grouse": "Blauw Korhoen",
+  "Willow Ptarmigan": "Moerassneeuwhoen",
+
+  "Great Argus": "Argusfazant",
+
+  "Satyr Tragopan": "Saterhaan",
+  "Cabots Tragopan": "Cabots Tragopaan",
+
+  "Himalayan Monal": "Himalayamonal",
+
+  "Cassowary": "Kasuaris",
+  "Ostrich": "Struisvogel",
+  "Emu": "Emoe",
+  "Kiwi": "Kiwi",
+
+  "Great Tinamou": "Grote Tinamoe",
+  "Hoatzin": "Hoatzin",
+  "Oilbird": "Vetvogel",
+
+  "Emperor Penguin": "Keizerspinguïn",
+  "Fairy Penguin": "Dwergpinguïn",
+  "Fiordland Penguin": "Fiordlandpinguïn",
+
+  "Kagu": "Kagoe",
+  "Sunbittern": "Zonnerel",
+
+  "Downy Woodpecker": "Donsspecht",
+  "Gila Woodpecker": "Gilaspecht",
+  "Gilded Flicker": "Goudspecht",
+  "Northern Flicker": "Goudspecht",
+  "Cream Colored Woodpecker": "Crèmekleurige Specht",
+  "Blonde Crested Woodpecker": "Blondkuifspecht",
+  "Darjeeling Woodpecker": "Darjeelingspecht",
+  "Red Headed Woodpecker": "Roodkopspecht",
+  "Red Bellied Woodpecker": "Roodbuikspecht",
+  "Campo Flicker": "Campos Grondspecht",
+
+  "Belted Kingfisher": "Bandijsvogel",
+  "Crested Kingfisher": "Kuifijsvogel",
+  "Malachite Kingfisher": "Malachietijsvogel",
+  "Pygmy Kingfisher": "Dwergijsvogel",
+  "Rufous Kingfisher": "Rosse IJsvogel",
+  "Rudy Kingfisher": "Rode IJsvogel",
+  "Stork Billed Kingfisher": "Ooievaarbekijsvogel",
+  "Woodland Kingfisher": "Bosijsvogel",
+
+  "Hoopoes": "Hop",
+  "Eurasian Hoopoe": "Hop",
+
+  "Carmine Bee-Eater": "Karmijnrode Bijeneter",
+  "Red Bearded Bee Eater": "Roodbaard Bijeneter",
+  "White Throated Bee Eater": "Witkeel Bijeneter",
+  "Asian Green Bee Eater": "Aziatische Groene Bijeneter",
+
+  "Lilac Roller": "Vorkstaartrol",
+  "Indian Roller": "Scharrelaar",
+
+  "Malabar Hornbill": "Malabarneushoornvogel",
+  "African Pied Hornbill": "Afrikaanse Bonte Neushoornvogel",
+  "Abyssinian Ground Hornbill": "Noordelijke Hoornraaf",
+  "White Crested Hornbill": "Witkuifneushoornvogel",
+  "Visayan Hornbill": "Visayan Neushoornvogel",
+  "Helmet Vanga": "Helmvanga",
+
+  "Great Jacamar": "Grote Jacamar",
+  "Ivory Billed Aracari": "Geelsnavelarassari",
+  "Collared Aracari": "Halsbandarassari",
+  "Curl Crested Aracuri": "Krulkuifarassari",
+  "Touchan": "Toekan",
+  "Blue Throated Toucanet": "Blauwkeeltoekan",
+  "Coppersmith Barbet": "Roodkopbaardvogel",
+  "Bearded Barbet": "Baardvogel",
+  "D-Arnauds Barbet": "d'Arnauds Baardvogel",
+
+  "Kookaburra": "Kookaburra",
+
+  "Cuban Tody": "Cubaanse Todi",
+  "Cuban Trogon": "Cubaanse Trogon",
+  "Elegant Trogon": "Elegante Trogon",
+  "Orange Breasted Trogon": "Oranjeborst Trogon",
+  "Red Naped Trogon": "Roodnektrogon",
+
+  "Quetzal": "Quetzal",
+
+  "Common Cuckoo": "Koekoek",
+  "Mangrove Cuckoo": "Mangrovekoekoek",
+  "Chestnut Winged Cuckoo": "Kastanjevleugelkoekoek",
+  "Blue Malkoha": "Blauwe Spoorkoekoek",
+  "Violet Cuckoo": "Violette Koekoek",
+  "African Emerald Cuckoo": "Afrikaanse Smaragdkoekoek",
+  "Coppery Tailed Coucal": "Koperstaartcoucal",
+
+  "Roadrunner": "Renkoekoek",
+
+  "Groved Billed Ani": "Groefsnavaelani",
+
+  "Hyacinth Macaw": "Hyacintara",
+  "Military Macaw": "Groene Ara",
+  "Scarlet Macaw": "Geelvleugelara",
+
+  "Rose Breasted Cockatoo": "Roze Kaketoe",
+  "Cockatoo": "Kaketoe",
+  "Gang Gang Cockatoo": "Helmkaketoe",
+  "Black Cockato": "Zwarte Kaketoe",
+
+  "Rainbow Lorikeet": "Regenbooglori",
+  "Chattering Lory": "Geelruglori",
+  "Dusky Lory": "Geelkapbandlori",
+
+  "Golden Parakeet": "Goudparkiet",
+  "Jandaya Parakeet": "Jandayaparkiet",
+  "Alexandrine Parakeet": "Grote Alexanderparkiet",
+  "Rose Ringed Parakeet": "Halsbandparkiet",
+
+  "Double Eyed Fig Parrot": "Dubbeloogvijgpapegaai",
+  "Black Headed Caique": "Zwartkoppapegaai",
+
+  "Rosy Faced Lovebird": "Perzikkopagapornis",
+
+  "Kakapo": "Kakapo",
+
+  "Ruby Throated Hummingbird": "Robijnkeelkolibrie",
+  "Annas Hummingbird": "Anna's Kolibrie",
+  "White Eared Hummingbird": "Witoorkolibrie",
+  "Horned Sungem": "Gehoornde Diamantvogel",
+  "Lucifer Hummingbird": "Luciferkolibrie",
+  "Amethyst Woodstar": "Amethist-houtster",
+  "Ecuadorian Hillstar": "Ecuador-bergster",
+
+  "Common Swift": "Gierzwaluw",
+  "Alpine Chough": "Alpenkauw",
+
+  "Tawny Frogmouth": "Vale Uilnachtzwaluw",
+  "Common Poorwill": "Poorwill",
+  "Eastern Wip Poor Will": "Whip-poor-will",
+  "Great Potoo": "Grote Reuzennachtzwaluw",
+
+  "Common Firecrest": "Vuurgoudhaan",
+  "Goldcrest": "Goudhaan",
+  "Ruby Crowned Kinglet": "Robijnkroontje",
+
+  "Eurasian Golden Oriole": "Wielewaal",
+  "Baltimore Oriole": "Baltimoretroepiaal",
+
+  "Loggerhead Shrike": "Amerikaans Klauwier",
+
+  "Red Backed Shrike": "Grauwe Klauwier",
+  "Great Grey Shrike": "Klapekster",
+
+  "Blue Gray Gnatcatcher": "Blauwgrijze Muggenvanger",
+
+  "Gray Catbird": "Katvogel",
+
+  "Northern Mockingbird": "Spotlijster",
+  "Brown Thrasher": "Rosse Spotlijster",
+
+  "Wood Thrush": "Houtlijster",
+  "Varied Thrush": "Bonte Lijster",
+  "Veery": "Veery",
+  "Samatran Thrush": "Sumatraanse Lijster",
+  "Red Tailed Thrush": "Roodstaartlijster",
+  "Cape Rock Thrush": "Kaapse Rotslijster",
+  "Ashy Thrushbird": "Asgrauweklimlijster",
+
+  "Bobolink": "Bobolink",
+  "Eastern Meadowlark": "Oostelijke Weidespreeuw",
+
+  "Red Winged Blackbird": "Epauletspreeuw",
+  "Yellow Headed Blackbird": "Geelkoptroepiaal",
+  "Brewers Blackbird": "Brewer-troepiaal",
+  "Tricolored Blackbird": "Driekleurige Troepiaal",
+
+  "Brown Headed Cowbird": "Bruinkopkoevogel",
+  "Common Grackle": "Troepiaal",
+
+  "Enggano Myna": "Enggano-beo",
+  "Myna": "Beo",
+
+  "Ovenbird": "Ovenvogel",
+  "Cactus Wren": "Cactuszanger",
+  "Carolina Wren": "Carolinawinterkoning",
+  "House Wren": "Huiswinterkoning",
+  "Fasciated Wren": "Gebandeerde Winterkoning",
+  "Splendid Wren": "Prachtwinterkoning",
+
+  "Brown Crepper": "Amerikaans Boomkruipertje",
+  "Wall Creaper": "Rotskruiper",
+
+  "Crested Nuthatch": "Kuifboomklever",
+  "White Breasted Nuthatch": "Witborstboomklever",
+  "Red Breasted Nuthatch": "Canadese Boomklever",
+
+  "Cedar Waxwing": "Cederpestvogel",
+  "Bohemian Waxwing": "Pestvogel",
+  "Phainopepla": "Phainopepla",
+
+  "American Dipper": "Amerikaanse Waterspreeuw",
+
+  "American Redstart": "Amerikaanse Roodstaart",
+  "Daurian Redstart": "Daurische Roodstaart",
+  "Common Redstart": "Gekraagde Roodstaart",
+
+  "Gold Wing Warbler": "Goudvleugelzanger",
+  "Bay-Breasted Warbler": "Baai-borstzanger",
+  "Blackburniam Warbler": "Blackburn-zanger",
+  "Cape May Warbler": "Cape May-zanger",
+  "Cerulean Warbler": "Hemelblauwe Zanger",
+  "Golden Cheeked Warbler": "Goudwangzanger",
+  "Red Faced Warbler": "Roodkopzanger",
+  "Townsends Warbler": "Townsends Zanger",
+  "Black Throated Warbler": "Zwartkeelzanger",
+
+  "Northern Parula": "Brilparula",
+
+  "Yellow Breasted Chat": "Geelborststruikzanger",
+  "Altamira Yellowthroat": "Altamira Geelkeel",
+
+  "Bearded Reedling": "Baardman",
+
+  "Tailorbird": "Snijdervogel",
+
+  "Bluethroat": "Blauwborst",
+  "Himalayan Bluetail": "Himalayablauwstaart",
+
+  "Stonechat": "Roodborsttapuit",
+
+  "Common Nightingale": "Nachtegaal",
+
+  "Spotted Flycatcher": "Grauwe Vliegenvanger",
+  "Vermilion Flycather": "Rode Tiran",
+  "Cinnamon Flycatcher": "Kaneelvliegenvanger",
+  "Royal Flycatcher": "Koninklijke Vliegenvanger",
+  "Indigo Flycatcher": "Indigovliegenvanger",
+  "Asian Dollard Bird": "Aziatische Scharrelaar",
+
+  "Eastern Bluebird": "Oostelijke Sialia",
+  "Fairy Bluebird": "Azuurelf",
+
+  "Indian Pitta": "Indische Pitta",
+  "Eared Pita": "Oorpitta",
+  "Gurneys Pitta": "Gurneys Pitta",
+  "Azure Breasted Pitta": "Azuurborstpitta",
+  "Banded Pita": "Gebandeerde Pitta",
+  "Red Bellied Pitta": "Roodbuikpitta",
+
+  "Noisy Friarbird": "Luidruchtige Monniksvogel",
+
+  "Bananaquit": "Suikervogel",
+
+  "Red Legged Honeycreeper": "Roodpootsuikervogel",
+
+  "Sunbird": "Honingzuiger",
+  "Crimson Sunbird": "Karmijnhoningzuiger",
+
+  "Yellow Bellied Flowerpecker": "Geelbuikbloemenpikker",
+
+  "Tropical Kingbird": "Tropische Koningstiran",
+  "Gray Kingbird": "Grijze Koningstiran",
+  "Great Kiskadee": "Grote Kiskadie",
+  "Says Phoebe": "Says Febe",
+  "Cinnamon Attila": "Kaneelattila",
+  "Northern Beardless Tyrannulet": "Noordelijke Baardloze Tiran",
+  "Greater Pewee": "Grote Peewie",
+
+  "Eastern Towee": "Roodflankspotlijster",
+
+  "Horned Lark": "Strandleeuwerik",
+  "Crested Lark": "Kuifleeuwerik",
+  "Skylark": "Veldleeuwerik",
+
+  "American Pipit": "Amerikaans Pieper",
+  "Golden Pipit": "Goudpieper",
+
+  "Forest Wagtail": "Bosknwikstaart",
+
+  "Cape Longclaw": "Kaapse Kalkoentje",
+
+  "Flame Tanager": "Vlamtangare",
+  "Paradise Tanager": "Parardijstangare",
+  "Scarlet Tanager": "Zwartvleugeltangare",
+  "Hepatic Tanager": "Levertangare",
+  "Emerald Tanager": "Smaragdtangare",
+  "Azure Tanager": "Azuurtangare",
+
+  "Blue Dacnis": "Blauwe Dacnis",
+  "Golden Chlorophonia": "Gouden Organist",
+
+  "Antillean Euphonia": "Antilliaanse Organist",
+  "Chestnet Bellied Euphonia": "Kastanjbuik Organist",
+
+  "Cock Of The Rock": "Rotshaan",
+  "Araripe Manakin": "Araripe-manakin",
+  "Stripped Manakin": "Gestreepte Manakin",
+
+  "Bearded Bellbird": "Baardklokvogel",
+  "Capuchinbird": "Kapucijnvogel",
+  "Umbrella Bird": "Parapluivogel",
+  "Spangled Cotinga": "Gespikkelde Cotinga",
+
+  "Flame Bowerbird": "Vlamprieelvogel",
+  "Golden Bower Bird": "Gouden Prieelvogel",
+  "Regent Bowerbird": "Regentprieelvogel",
+
+  "Bird Of Paradise": "Paradijsvogel",
+  "Wilsons Bird Of Paradise": "Wilsons Paradijsvogel",
+
+  "Apostlebird": "Apostelvogel",
+  "Australasian Figbird": "Australazische Vijgenvogel",
+
+  "Go Away Bird": "Wegvliegvogel",
+  "Guinea Turaco": "Guineetoerako",
+  "White Cheeked Turaco": "Witwangtoerako",
+  "Violet Turaco": "Violettoerako",
+
+  "Red Fody": "Rode Wever",
+  "Eastern Golden Weaver": "Oostelijke Goudwever",
+  "Northern Red Bishop": "Vuurwever",
+
+  "Yellow Cacique": "Gele Buidelspreeuw",
+  "Crested Oropendola": "Kuifbuidelspreeuw",
+  "Venezuelian Troupial": "Venezuelaanse Troepiaal",
+
+  "Verdin": "Verdin",
+  "Wrentit": "Muistimalia",
+
+  "Fire Tailled Myzornis": "Vuurstaartmyzornis",
+
+  "Looney Birds": "Fuut",
+
+  "Avadavat": "Tijgervink",
+  "Red Crossbill": "Grote Kruisbek",
+
+  "Pine Siskin": "Dennensijs",
+  "Andean Siskin": "Andessijs",
+
+  "Canary": "Kanarie",
+
+  "Grandala": "Grandala",
+
+  "Fiery Minivet": "Vurige Miniveet",
+
+  "Grey Cuckooshrike": "Grijze Rupsvogel",
+  "Crested Shriketit": "Kuifklauwierlijster",
+
+  "Scarlet Faced Liocichla": "Roodwangliocichla",
+  "Chucao Tapaculo": "Chucao-tapaculo",
+  "Jocotoco Antpitta": "Jocotoco-miervogel",
+  "Antbird": "Miervogel",
+
+  "Green Broadbill": "Groene Bredbek",
+  "Banded Broadbill": "Gebandeerde Breedbek",
+  "Black And Yellow Broadbill": "Zwartzele Breedbek",
+
+  "Collared Crescentchest": "Halsbandborstje",
+  "Austral Canastero": "Zuidelijke Boomstekelstaart",
+  "Azaras Spinetail": "Azara-doornstaart",
+  "Caatinga Cacholote": "Caatinga-cacholote",
+  "Great Xenops": "Grote Xenops",
+
+  "Black Baza": "Zwarte Koekoekswouw",
+
+  "Hamerkop": "Hamerkop",
+
+  "Smiths Longspur": "Smiths Spoorgors",
+
+  "Indian Bustard": "Indische Trap",
+  "Inland Dotterel": "Binnenlandse Bontbekplevier",
+
+  "Maleo": "Maleo",
+
+  "Malagasy White Eye": "Madagaskar Brilvogel",
+  "Anianiau": "Hawaii-brilvogel",
+  "Apapane": "Apapane",
+  "Iwi": "Iiwi",
+  "Palila": "Palila",
+
+  "Bornean Bristlehead": "Borneose Borstelvogel",
+  "Bornean Leafbird": "Borneose Bladmusje",
+
+  "Snowy Sheathbill": "Zuidpoolkip",
+
+  "Common Iora": "Gewone Iora",
+
+  "Spotted Catbird": "Gevlekte Katvogel",
+
+  "Unknown": "Onbekend",
+  "Bird": "Vogel"
+}

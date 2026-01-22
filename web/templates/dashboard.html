@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BirdSense Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">
+                <img src="{{ url_for('static', filename='img/logo_dark.png') }}" alt="BirdSense">
+            </a>
+            <div class="nav-links">
+                <a href="/" class="active">Dashboard</a>
+                <a href="/test">Test</a>
+                <a href="/config">Config</a>
+                <a href="/api-docs" target="_blank">API</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-value">{{ total }}</div>
+                <div class="stat-label">Total Detections</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🦜</div>
+                <div class="stat-value">{{ species_count }}</div>
+                <div class="stat-label">Unique Species</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📅</div>
+                <div class="stat-value">{{ daily_counts[-1].count if daily_counts else 0 }}</div>
+                <div class="stat-label">Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-value">{% if avg_inference_time_ms %}{{ avg_inference_time_ms }}ms{% else %}-{% endif %}</div>
+                <div class="stat-label">Avg. Inference</div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-grid">
+            <!-- Daily Activity Chart -->
+            <div class="card">
+                <h2><span class="icon">📈</span> Activity Last Week</h2>
+                <canvas id="dailyChart"></canvas>
+            </div>
+
+            <!-- Top Species -->
+            <div class="card">
+                <h2><span class="icon">🏆</span> Most Seen Birds</h2>
+                {% if top_species %}
+                <div class="species-list">
+                    {% for species, count in top_species %}
+                    <div class="species-item">
+                        <span class="species-rank">{{ loop.index }}</span>
+                        <span class="species-name">{{ species }}</span>
+                        <span class="species-count">{{ count }}×</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="icon">🦉</div>
+                    <h3>No birds seen yet</h3>
+                    <p>Use the Test page to classify bird images</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Detections -->
+        <div class="card">
+            <h2><span class="icon">🕐</span> Recent Detections</h2>
+            {% if recent %}
+            <div class="detections-list">
+                {% for detection in recent %}
+                <div class="detection-item{% if detection.image_path %} has-image{% endif %}">
+                    {% if detection.image_path %}
+                    <img src="{{ bridge_url }}/images/{{ detection.image_path.split('/')[-1] }}" 
+                         alt="{{ detection.species }}" 
+                         class="detection-image"
+                         onclick="openLightbox(this.src)">
+                    {% else %}
+                    <div class="detection-icon">🐦</div>
+                    {% endif %}
+                    <div class="detection-info">
+                        <div class="detection-species">{{ detection.species }}</div>
+                        <div class="detection-meta">
+                            <span>📷 {{ detection.camera }}</span>
+                            <span class="confidence-badge {% if detection.confidence >= 80 %}confidence-high{% elif detection.confidence >= 60 %}confidence-medium{% else %}confidence-low{% endif %}">
+                                {{ detection.confidence }}%
+                            </span>
+                            <span>🕐 {{ detection.timestamp | timestamp_to_time }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <!-- Lightbox -->
+            <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+                <span class="lightbox-close">&times;</span>
+                <img id="lightbox-img" src="" alt="Bird">
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="icon">📭</div>
+                <h3>No recent detections</h3>
+                <p>Classified birds will appear here</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- System Status -->
+        <div class="card">
+            <h2><span class="icon">⚙️</span> System Status</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">MQTT Broker</span>
+                    <span class="status-value">{{ config.get('MQTT_BROKER', 'Not configured') }}</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">AI Model</span>
+                    <span class="status-value">{{ config.get('MODEL_NAME', 'EfficientNetB2') }}</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Min. Confidence</span>
+                    <span class="status-value">{{ config.get('MIN_CONFIDENCE', '60') }}%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Daily activity chart with dark theme
+        const dailyData = {{ daily_counts | tojson }};
+        const ctx = document.getElementById('dailyChart').getContext('2d');
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.5)');
+        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dailyData.map(d => {
+                    const date = new Date(d.date);
+                    return date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' });
+                }),
+                datasets: [{
+                    label: 'Detections',
+                    data: dailyData.map(d => d.count),
+                    backgroundColor: gradient,
+                    borderColor: '#10b981',
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0,
+                            color: '#94a3b8'
+                        },
+                        grid: {
+                            color: 'rgba(51, 65, 85, 0.5)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#94a3b8'
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // Auto-refresh every 30 seconds
+        setTimeout(() => location.reload(), 30000);
+    </script>
+    
+    <script>
+        function openLightbox(src) {
+            const lightbox = document.getElementById('lightbox');
+            const img = document.getElementById('lightbox-img');
+            img.src = src;
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeLightbox() {
+            const lightbox = document.getElementById('lightbox');
+            lightbox.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeLightbox();
+            }
+        });
+    </script>
+</body>
+</html>

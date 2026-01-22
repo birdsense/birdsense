@@ -1,0 +1,53 @@
+services:
+  birdsense-bridge:
+    build: ./bridge
+    container_name: birdsense-bridge
+    ports:
+      - "5001:5001"  # Expose API port
+    environment:
+      - MQTT_BROKER=${MQTT_BROKER:-}
+      - MQTT_PORT=${MQTT_PORT:-1883}
+      - MQTT_USERNAME=${MQTT_USERNAME:-}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:-}
+      - MODEL_NAME=${MODEL_NAME:-birder-project/convnext_v2_tiny_eu-common}
+      - MIN_CONFIDENCE=${MIN_CONFIDENCE:-60}
+    restart: unless-stopped
+    volumes:
+      - /tmp:/tmp
+      - birdsense-data:/data          # Shared SQLite database
+      - birdsense-images:/data/images # Images storage
+      - model-cache:/root/.cache/huggingface  # Persist downloaded models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s  # Model download can take time on first run
+    networks:
+      - birdsense-network
+
+  birdsense-web:
+    build: ./web
+    container_name: birdsense-web
+    ports:
+      - "8080:8080"
+    environment:
+      - BRIDGE_URL=http://birdsense-bridge:5001
+      - BRIDGE_EXTERNAL_URL=http://localhost:5001
+    volumes:
+      - birdsense-data:/data          # Shared SQLite database
+      - birdsense-images:/data/images # Images storage
+    restart: unless-stopped
+    depends_on:
+      - birdsense-bridge
+    networks:
+      - birdsense-network
+
+volumes:
+  birdsense-data:    # Shared data (SQLite database)
+  birdsense-images:  # Images storage
+  model-cache:       # HuggingFace model cache
+
+networks:
+  birdsense-network:
+    name: birdsense-network

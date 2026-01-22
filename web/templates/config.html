@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BirdSense Configuration</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">
+                <img src="{{ url_for('static', filename='img/logo_dark.png') }}" alt="BirdSense">
+            </a>
+            <div class="nav-links">
+                <a href="/">Dashboard</a>
+                <a href="/test">Test</a>
+                <a href="/config" class="active">Config</a>
+                <a href="/api-docs" target="_blank">API</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h2>System Configuration</h2>
+            <p>Adjust the settings for the AI classifier and MQTT integration</p>
+        </div>
+
+        {% if saved %}
+        <div class="alert alert-success">
+            {% if reload_result and reload_result.status == 'ok' %}
+                Configuration saved and automatically applied!
+                {% if reload_result.model_changed %}
+                    <br><strong>Note:</strong> AI model has changed. Restart the bridge container to load the new model:
+                    <code>docker compose restart birdsense-bridge</code>
+                {% endif %}
+            {% else %}
+                Configuration saved! Restart the bridge container to apply changes:
+                <code>docker compose restart birdsense-bridge</code>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <form method="POST" action="/config">
+                <!-- AI Model Settings -->
+                <div class="form-section">
+                    <h3>AI Model Settings</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">
+                        These settings are required for the classifier. Test directly via the <a href="/test" style="color: var(--primary);">Test page</a>.
+                    </p>
+
+                    <div class="form-group">
+                        <label for="model_name">AI Model</label>
+                        <select id="model_name" name="model_name">
+                            <option value="birder-project/convnext_v2_tiny_eu-common" {{ 'selected' if 'eu-common' in config.get('MODEL_NAME', '') or not config.get('MODEL_NAME') else '' }}>
+                                EU-Common (Recommended - 707 European species, Collins Bird Guide)
+                            </option>
+                            <option value="dennisjooo/Birds-Classifier-EfficientNetB2" {{ 'selected' if 'EfficientNetB2' in config.get('MODEL_NAME', '') else '' }}>
+                                EfficientNetB2 (525 species, primarily North America)
+                            </option>
+                        </select>
+                        <small>EU-Common is optimized for European birds like Robin, Great Tit, etc.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="min_confidence">Minimum Confidence (%)</label>
+                        <input type="number" id="min_confidence" name="min_confidence"
+                               value="{{ config.get('MIN_CONFIDENCE', '60') }}"
+                               min="0" max="100" placeholder="60" required>
+                        <small>Only detections with confidence above this percentage will be published via MQTT</small>
+                    </div>
+                </div>
+
+                <!-- MQTT Settings (Optional) -->
+                <div class="form-section">
+                    <h3>MQTT / Home Assistant (Optional)</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">
+                        Fill this in to automatically send detections to Home Assistant via MQTT.
+                    </p>
+
+                    <div class="form-group">
+                        <label for="mqtt_broker">MQTT Broker</label>
+                        <input type="text" id="mqtt_broker" name="mqtt_broker"
+                               value="{{ config.get('MQTT_BROKER', '') }}"
+                               placeholder="192.168.1.100 or homeassistant.local">
+                        <small>IP address or hostname of your MQTT broker</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mqtt_port">MQTT Port</label>
+                        <input type="number" id="mqtt_port" name="mqtt_port"
+                               value="{{ config.get('MQTT_PORT', '1883') }}"
+                               placeholder="1883">
+                        <small>Default: 1883</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mqtt_username">MQTT Username</label>
+                        <input type="text" id="mqtt_username" name="mqtt_username"
+                               value="{{ config.get('MQTT_USERNAME', '') }}"
+                               placeholder="birdsense">
+                        <small>Optional: leave empty if no authentication required</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mqtt_password">MQTT Password</label>
+                        <input type="password" id="mqtt_password" name="mqtt_password"
+                               value="{{ config.get('MQTT_PASSWORD', '') }}"
+                               placeholder="••••••••">
+                        <small>Optional: leave empty if no authentication required</small>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <a href="/" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <h3>Configuration Info</h3>
+            <p style="color: var(--text-muted);">
+                Configuration is stored in a SQLite database and automatically applied (hot-reload).
+                <br><br>
+                <strong>When a restart is required:</strong>
+            </p>
+            <ul style="color: var(--text-muted); margin: 12px 0; padding-left: 20px;">
+                <li>When changing the AI model</li>
+                <li>When changing the MQTT broker address</li>
+            </ul>
+            <code style="display: block; margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px;">
+                docker compose restart birdsense-bridge
+            </code>
+        </div>
+    </div>
+</body>
+</html>
