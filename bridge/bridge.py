@@ -344,17 +344,27 @@ def api_classify():
         # Download from URL
         try:
             logger.info(f"API classify: downloading from URL, camera={camera}, lang={lang}")
-            response = requests.get(image_url, timeout=30, stream=True)
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            response = requests.get(image_url, timeout=30, headers=headers)
             response.raise_for_status()
 
-            # Check content type
             content_type = response.headers.get('content-type', '')
-            if not content_type.startswith('image/'):
+            content = response.content
+
+            # Check if it's an image by content-type OR magic bytes
+            # Some CDNs (like BirdBuddy's CloudFront) return wrong content-type
+            is_jpeg = content[:3] == b'\xff\xd8\xff'
+            is_png = content[:4] == b'\x89PNG'
+            is_image_content_type = content_type.startswith('image/')
+
+            if not (is_image_content_type or is_jpeg or is_png):
+                logger.warning(f"URL returned non-image: content-type={content_type}, first bytes={content[:20].hex()}")
                 return jsonify({'error': f'URL does not point to an image (content-type: {content_type})'}), 400
 
             with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp:
-                for chunk in response.iter_content(chunk_size=8192):
-                    tmp.write(chunk)
+                tmp.write(content)
                 tmp_path = tmp.name
             logger.info(f"API classify: image downloaded from URL, camera={camera}")
         except requests.exceptions.Timeout:
