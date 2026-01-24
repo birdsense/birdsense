@@ -395,7 +395,7 @@ def api_classify():
                 timestamp = int(time.time())
                 species_safe = result.get('species_en', 'unknown').replace(' ', '_').lower()
                 saved_image_path = str(image_dir / f"{species_safe}_{timestamp}.jpg")
-                
+
                 # Create thumbnail for dashboard
                 thumbnail_path = str(image_dir / f"thumb_{species_safe}_{timestamp}.jpg")
                 try:
@@ -408,7 +408,7 @@ def api_classify():
                 except Exception as e:
                     logger.warning(f"Failed to create thumbnail: {e}")
                     thumbnail_path = saved_image_path  # Fallback to full image
-                
+
                 # Save original image
                 shutil.copy2(tmp_path, saved_image_path)
                 logger.info(f"Image saved: {saved_image_path}")
