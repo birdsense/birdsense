@@ -5,6 +5,7 @@ services:
     ports:
       - "5001:5001"  # Expose API port
     environment:
+      - TZ=Europe/Amsterdam
       - MQTT_BROKER=${MQTT_BROKER:-}
       - MQTT_PORT=${MQTT_PORT:-1883}
       - MQTT_USERNAME=${MQTT_USERNAME:-}
@@ -32,6 +33,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - TZ=Europe/Amsterdam
       - BRIDGE_URL=${BRIDGE_URL:-http://birdsense-bridge:5001}
       - BRIDGE_EXTERNAL_URL=${BRIDGE_EXTERNAL_URL:-http://localhost:5001}
     volumes:
