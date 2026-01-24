@@ -89,7 +89,7 @@
                 {% for detection in recent %}
                 <div class="detection-item{% if detection.image_path %} has-image{% endif %}">
                     {% if detection.image_path %}
-                    <img src="{{ bridge_url }}/images/{{ detection.image_path.split('/')[-1] }}" 
+                    <img src="/images/{{ detection.image_path.split('/')[-1] }}" 
                          alt="{{ detection.species }}" 
                          class="detection-image"
                          onclick="openLightbox(this.src)">

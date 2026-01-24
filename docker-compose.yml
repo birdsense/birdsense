@@ -10,7 +10,7 @@ services:
       - MQTT_USERNAME=${MQTT_USERNAME:-}
       - MQTT_PASSWORD=${MQTT_PASSWORD:-}
       - MODEL_NAME=${MODEL_NAME:-birder-project/convnext_v2_tiny_eu-common}
-      - MIN_CONFIDENCE=${MIN_CONFIDENCE:-60}
+      - MIN_CONFIDENCE=${MIN_CONFIDENCE:-30}
     restart: unless-stopped
     volumes:
       - /tmp:/tmp
@@ -32,8 +32,8 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - BRIDGE_URL=http://birdsense-bridge:5001
-      - BRIDGE_EXTERNAL_URL=http://localhost:5001
+      - BRIDGE_URL=${BRIDGE_URL:-http://birdsense-bridge:5001}
+      - BRIDGE_EXTERNAL_URL=${BRIDGE_EXTERNAL_URL:-http://localhost:5001}
     volumes:
       - birdsense-data:/data          # Shared SQLite database
       - birdsense-images:/data/images # Images storage

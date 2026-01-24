@@ -18,6 +18,15 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
 # Initialize database
 init_db()
 
+@app.route('/images/<path:filename>')
+def serve_image(filename):
+    """Serve images from shared data directory"""
+    try:
+        from flask import send_from_directory
+        return send_from_directory('/data/images', filename)
+    except FileNotFoundError:
+        return "Image not found", 404
+
 
 # Jinja2 filter for timestamp formatting
 @app.template_filter('timestamp_to_time')

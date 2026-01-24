@@ -492,7 +492,10 @@ def api_serve_image(filename):
     if not image_path.exists():
         return jsonify({'error': 'Image not found'}), 404
 
-    return send_file(image_path, mimetype='image/jpeg')
+    response = send_file(image_path, mimetype='image/jpeg')
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET'
+    return response
 
 
 @api.route('/api/images', methods=['GET'])
