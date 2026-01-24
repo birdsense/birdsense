@@ -356,8 +356,22 @@ def api_classify():
                 timestamp = int(time.time())
                 species_safe = result.get('species_en', 'unknown').replace(' ', '_').lower()
                 saved_image_path = str(image_dir / f"{species_safe}_{timestamp}.jpg")
+                
+                # Create thumbnail for dashboard
+                thumbnail_path = str(image_dir / f"thumb_{species_safe}_{timestamp}.jpg")
+                try:
+                    from PIL import Image
+                    with Image.open(tmp_path) as img:
+                        # Calculate thumbnail size (max 300px width, maintain aspect ratio)
+                        img.thumbnail((300, 300), Image.Resampling.LANCZOS)
+                        img.save(thumbnail_path, 'JPEG', quality=85)
+                    logger.info(f"Thumbnail created: {thumbnail_path}")
+                except Exception as e:
+                    logger.warning(f"Failed to create thumbnail: {e}")
+                    thumbnail_path = saved_image_path  # Fallback to full image
+                
+                # Save original image
                 shutil.copy2(tmp_path, saved_image_path)
-                Path(tmp_path).unlink(missing_ok=True)
                 logger.info(f"Image saved: {saved_image_path}")
             else:
                 # Clean up temp file if not saving
@@ -389,7 +403,8 @@ def api_classify():
                         camera=camera,
                         confidence=confidence,
                         inference_time_ms=result.get('inference_time_ms'),
-                        image_path=saved_image_path
+                        image_path=saved_image_path,
+                        thumbnail_path=thumbnail_path if thumbnail_path != saved_image_path else None
                     )
                     # Publish to MQTT if configured
                     if _bridge_instance.config.MQTT_BROKER:

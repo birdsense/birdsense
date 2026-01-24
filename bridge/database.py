@@ -49,6 +49,7 @@ def init_db():
                 event_id TEXT,
                 inference_time_ms INTEGER,
                 image_path TEXT,
+                thumbnail_path TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
@@ -69,6 +70,14 @@ def init_db():
             try:
                 cursor.execute('ALTER TABLE detections ADD COLUMN image_path TEXT')
                 logger.info("Added image_path column")
+            except sqlite3.OperationalError:
+                pass
+
+        # Add thumbnail_path column if it doesn't exist (migration)
+        if 'thumbnail_path' not in columns:
+            try:
+                cursor.execute('ALTER TABLE detections ADD COLUMN thumbnail_path TEXT')
+                logger.info("Added thumbnail_path column")
             except sqlite3.OperationalError:
                 pass
 
@@ -99,9 +108,9 @@ class BirdStats:
 
     @staticmethod
     def add_detection(species_nl: str, camera: str, confidence: int,
-                      species_en: str = None, event_id: str = None,
-                      timestamp: int = None, inference_time_ms: int = None,
-                      image_path: str = None):
+                      species_en: str, event_id: str,
+                      timestamp: int, inference_time_ms: int,
+                      image_path: str, thumbnail_path: str = None):
         """Add a new detection to the database"""
         if timestamp is None:
             timestamp = int(datetime.now().timestamp())
@@ -109,9 +118,9 @@ class BirdStats:
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO detections (species_nl, species_en, confidence, camera, timestamp, event_id, inference_time_ms, image_path)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (species_nl, species_en, confidence, camera, timestamp, event_id, inference_time_ms, image_path))
+                INSERT INTO detections (species_nl, species_en, confidence, camera, timestamp, event_id, inference_time_ms, image_path, thumbnail_path)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (species_nl, species_en, confidence, camera, timestamp, event_id, inference_time_ms, image_path, thumbnail_path))
 
         logger.debug(f"Detection saved: {species_nl} ({confidence}%) from {camera} in {inference_time_ms}ms")
 
