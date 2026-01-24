@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import paho.mqtt.client as mqtt
+import requests
 from classifier import BirdClassifier
 from config import Config
 from database import BirdStats
@@ -241,12 +242,18 @@ def api_classify():
       - Classification
     consumes:
       - multipart/form-data
+      - application/x-www-form-urlencoded
     parameters:
       - name: image
         in: formData
         type: file
-        required: true
-        description: The image to analyze (JPG, PNG)
+        required: false
+        description: The image to analyze (JPG, PNG). Either image or image_url is required.
+      - name: image_url
+        in: formData
+        type: string
+        required: false
+        description: URL of the image to analyze. Either image or image_url is required.
       - name: camera
         in: formData
         type: string
@@ -302,20 +309,13 @@ def api_classify():
                   confidence:
                     type: integer
       400:
-        description: No image uploaded
+        description: No image provided (need either image file or image_url)
       500:
         description: Classification failed
       503:
         description: Classifier not initialized
     """
     global _bridge_instance
-
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image uploaded'}), 400
-
-    file = request.files['image']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
 
     # Ensure classifier is ready
     if _bridge_instance is None or _bridge_instance.classifier is None:
@@ -328,12 +328,41 @@ def api_classify():
         lang = 'en'
     skip_stats_raw = request.form.get('skip_stats', 'false')
     skip_stats = skip_stats_raw.lower() in ('true', '1', 'yes')
-    logger.info(f"API classify: camera={camera}, lang={lang}, skip_stats={skip_stats}")
 
-    # Save temp file
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp:
-        file.save(tmp.name)
-        tmp_path = tmp.name
+    # Get image from file upload or URL
+    tmp_path = None
+    image_url = request.form.get('image_url')
+
+    if 'image' in request.files and request.files['image'].filename != '':
+        # File upload
+        file = request.files['image']
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp:
+            file.save(tmp.name)
+            tmp_path = tmp.name
+        logger.info(f"API classify: file upload, camera={camera}, lang={lang}, skip_stats={skip_stats}")
+    elif image_url:
+        # Download from URL
+        try:
+            logger.info(f"API classify: downloading from URL, camera={camera}, lang={lang}")
+            response = requests.get(image_url, timeout=30, stream=True)
+            response.raise_for_status()
+
+            # Check content type
+            content_type = response.headers.get('content-type', '')
+            if not content_type.startswith('image/'):
+                return jsonify({'error': f'URL does not point to an image (content-type: {content_type})'}), 400
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp:
+                for chunk in response.iter_content(chunk_size=8192):
+                    tmp.write(chunk)
+                tmp_path = tmp.name
+            logger.info(f"API classify: image downloaded from URL, camera={camera}")
+        except requests.exceptions.Timeout:
+            return jsonify({'error': 'Timeout downloading image from URL'}), 400
+        except requests.exceptions.RequestException as e:
+            return jsonify({'error': f'Failed to download image: {str(e)}'}), 400
+    else:
+        return jsonify({'error': 'No image provided. Use either image file upload or image_url parameter.'}), 400
 
     # Check image size
     image_size = Path(tmp_path).stat().st_size

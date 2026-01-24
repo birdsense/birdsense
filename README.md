@@ -37,12 +37,21 @@ docker compose up -d
 
 ## API
 
-**Classify an image:**
+**Classify an image (file upload):**
 
 ```bash
 curl -X POST http://localhost:5001/api/classify \
   -F "image=@bird.jpg" \
   -F "camera=garden"
+```
+
+**Classify an image (from URL):**
+
+```bash
+curl -X POST http://localhost:5001/api/classify \
+  -d "image_url=https://example.com/bird.jpg" \
+  -d "camera=birdbuddy" \
+  -d "lang=nl"
 ```
 
 **Response:**
@@ -207,7 +216,26 @@ mqtt:
       json_attributes_topic: "birdsense/detections"
 ```
 
-**Shell Command** - Classify images from automations:
+**REST Command** - Classify images from URL (e.g., BirdBuddy):
+
+```yaml
+rest_command:
+  classify_bird:
+    url: "http://birdsense:5001/api/classify"
+    method: POST
+    content_type: "application/x-www-form-urlencoded"
+    payload: "image_url={{ image_url }}&camera={{ camera }}&lang=nl"
+```
+
+Usage in automation:
+```yaml
+service: rest_command.classify_bird
+data:
+  image_url: "{{ trigger.payload_json.image_url }}"
+  camera: "birdbuddy"
+```
+
+**Shell Command** - Classify local images:
 
 ```yaml
 shell_command:

@@ -412,11 +412,21 @@
 
         <h2>API Usage</h2>
         <div class="code-block">
-            <h3>Request</h3>
+            <h3>File Upload</h3>
             <div class="code-wrapper">
-                <pre><code><span class="comment"># Classify a bird image</span>
+                <pre><code><span class="comment"># Classify a bird image (file upload)</span>
 <span class="function">curl</span> <span class="property">-X</span> <span class="keyword">POST</span> <span class="url">http://localhost:5001/api/classify</span> \
   <span class="property">-F</span> <span class="string">"image=@bird.jpg"</span></code></pre>
+                <button class="copy-btn" onclick="copyCode(this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg></button>
+            </div>
+        </div>
+        <div class="code-block">
+            <h3>From URL (e.g., BirdBuddy)</h3>
+            <div class="code-wrapper">
+                <pre><code><span class="comment"># Classify a bird image from URL</span>
+<span class="function">curl</span> <span class="property">-X</span> <span class="keyword">POST</span> <span class="url">http://localhost:5001/api/classify</span> \
+  <span class="property">-d</span> <span class="string">"image_url=https://example.com/bird.jpg"</span> \
+  <span class="property">-d</span> <span class="string">"camera=birdbuddy"</span></code></pre>
                 <button class="copy-btn" onclick="copyCode(this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg></button>
             </div>
         </div>
@@ -522,9 +532,23 @@
         </div>
 
         <div class="code-block">
-            <h3>Shell Command</h3>
+            <h3>REST Command (for image URLs)</h3>
             <div class="code-wrapper">
-                <pre><code><span class="comment"># configuration.yaml - classify images from automations</span>
+                <pre><code><span class="comment"># configuration.yaml - classify images from URL (e.g., BirdBuddy)</span>
+<span class="property">rest_command</span>:
+  <span class="property">classify_bird</span>:
+    <span class="property">url</span>: <span class="string">"http://birdsense:5001/api/classify"</span>
+    <span class="property">method</span>: <span class="keyword">POST</span>
+    <span class="property">content_type</span>: <span class="string">"application/x-www-form-urlencoded"</span>
+    <span class="property">payload</span>: <span class="string">"image_url={{ image_url }}&camera={{ camera }}&lang=nl"</span></code></pre>
+                <button class="copy-btn" onclick="copyCode(this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg></button>
+            </div>
+        </div>
+
+        <div class="code-block">
+            <h3>Shell Command (for local files)</h3>
+            <div class="code-wrapper">
+                <pre><code><span class="comment"># configuration.yaml - classify local images</span>
 <span class="property">shell_command</span>:
   <span class="property">classify_bird</span>: <span class="string">'curl -s -X POST http://birdsense:5001/api/classify -F "image=@/config/www/snapshot.jpg"'</span></code></pre>
                 <button class="copy-btn" onclick="copyCode(this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg></button>
