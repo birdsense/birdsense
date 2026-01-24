@@ -48,15 +48,38 @@ def init_db():
                 timestamp INTEGER NOT NULL,
                 event_id TEXT,
                 inference_time_ms INTEGER,
+                image_path TEXT,
+                thumbnail_path TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
 
         # Add inference_time_ms column if it doesn't exist (migration)
-        try:
-            cursor.execute('ALTER TABLE detections ADD COLUMN inference_time_ms INTEGER')
-        except sqlite3.OperationalError:
-            pass  # Column already exists
+        cursor.execute('PRAGMA table_info(detections)')
+        columns = [row[1] for row in cursor.fetchall()]
+
+        if 'inference_time_ms' not in columns:
+            try:
+                cursor.execute('ALTER TABLE detections ADD COLUMN inference_time_ms INTEGER')
+                logger.info("Added inference_time_ms column")
+            except sqlite3.OperationalError:
+                pass
+
+        # Add image_path column if it doesn't exist (migration)
+        if 'image_path' not in columns:
+            try:
+                cursor.execute('ALTER TABLE detections ADD COLUMN image_path TEXT')
+                logger.info("Added image_path column")
+            except sqlite3.OperationalError:
+                pass
+
+        # Add thumbnail_path column if it doesn't exist (migration)
+        if 'thumbnail_path' not in columns:
+            try:
+                cursor.execute('ALTER TABLE detections ADD COLUMN thumbnail_path TEXT')
+                logger.info("Added thumbnail_path column")
+            except sqlite3.OperationalError:
+                pass
 
         # Create index for common queries
         cursor.execute('''
@@ -86,7 +109,8 @@ class BirdStats:
     @staticmethod
     def add_detection(species_nl: str, camera: str, confidence: int,
                       species_en: str = None, event_id: str = None,
-                      timestamp: int = None):
+                      timestamp: int = None, inference_time_ms: int = None,
+                      image_path: str = None, thumbnail_path: str = None):
         """Add a new detection to the database"""
         if timestamp is None:
             timestamp = int(datetime.now().timestamp())
@@ -94,11 +118,11 @@ class BirdStats:
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO detections (species_nl, species_en, confidence, camera, timestamp, event_id)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (species_nl, species_en, confidence, camera, timestamp, event_id))
+                INSERT INTO detections (species_nl, species_en, confidence, camera, timestamp, event_id, inference_time_ms, image_path, thumbnail_path)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (species_nl, species_en, confidence, camera, timestamp, event_id, inference_time_ms, image_path, thumbnail_path))
 
-        logger.debug(f"Detection saved: {species_nl} ({confidence}%) from {camera}")
+        logger.debug(f"Detection saved: {species_nl} ({confidence}%) from {camera} in {inference_time_ms}ms")
 
     @staticmethod
     def get_total_detections() -> int:

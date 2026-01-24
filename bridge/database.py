@@ -108,9 +108,9 @@ class BirdStats:
 
     @staticmethod
     def add_detection(species_nl: str, camera: str, confidence: int,
-                      species_en: str, event_id: str,
-                      timestamp: int, inference_time_ms: int,
-                      image_path: str, thumbnail_path: str = None):
+                      species_en: str = None, event_id: str = None,
+                      timestamp: int = None, inference_time_ms: int = None,
+                      image_path: str = None, thumbnail_path: str = None):
         """Add a new detection to the database"""
         if timestamp is None:
             timestamp = int(datetime.now().timestamp())
