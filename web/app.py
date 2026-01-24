@@ -30,7 +30,7 @@ def serve_image(filename):
             return send_from_directory('/data/images', filename)
         
         # For regular images, check if thumbnail exists first
-        thumbnail_name = f'tumb_{filename}'
+        thumbnail_name = f'thumb_{filename}'
         thumbnail_path = f'/data/images/{thumbnail_name}'
         if os.path.exists(thumbnail_path):
             return send_from_directory('/data/images', thumbnail_name)

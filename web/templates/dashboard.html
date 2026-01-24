@@ -89,10 +89,11 @@
                 {% for detection in recent %}
                 <div class="detection-item{% if detection.image_path %} has-image{% endif %}">
                     {% if detection.image_path %}
-                    <img src="/images/{{ detection.image_path.split('/')[-1] }}" 
-                         alt="{{ detection.species }}" 
+                    <img src="/images/{{ (detection.thumbnail_path or detection.image_path).split('/')[-1] }}"
+                         alt="{{ detection.species }}"
                          class="detection-image"
-                         onclick="openLightbox(this.src)">
+                         data-fullsize="/images/{{ detection.image_path.split('/')[-1] }}"
+                         onclick="openLightbox(this.dataset.fullsize)">
                     {% else %}
                     <div class="detection-icon">🐦</div>
                     {% endif %}

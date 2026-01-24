@@ -165,7 +165,7 @@ class BirdStats:
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT species_nl as species, camera, confidence, timestamp, image_path
+                SELECT species_nl as species, camera, confidence, timestamp, image_path, thumbnail_path
                 FROM detections
                 ORDER BY timestamp DESC
                 LIMIT ?
