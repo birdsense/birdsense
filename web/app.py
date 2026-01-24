@@ -20,22 +20,9 @@ init_db()
 
 @app.route('/images/<path:filename>')
 def serve_image(filename):
-    """Serve images from shared data directory, prefer thumbnails"""
+    """Serve images from shared data directory"""
     try:
         from flask import send_from_directory
-        import os
-        
-        # Check if this is a thumbnail request
-        if filename.startswith('thumb_'):
-            return send_from_directory('/data/images', filename)
-        
-        # For regular images, check if thumbnail exists first
-        thumbnail_name = f'thumb_{filename}'
-        thumbnail_path = f'/data/images/{thumbnail_name}'
-        if os.path.exists(thumbnail_path):
-            return send_from_directory('/data/images', thumbnail_name)
-        
-        # Fallback to full image
         return send_from_directory('/data/images', filename)
     except FileNotFoundError:
         return "Image not found", 404
