@@ -28,6 +28,97 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Logo path for watermarking
+LOGO_PATH = Path(__file__).parent / "logo.png"
+
+
+def add_watermark(image_path: str, species_name: str, output_path: str) -> bool:
+    """
+    Add BirdSense watermark to image: logo top-left, species name bottom.
+
+    Args:
+        image_path: Path to the original image
+        species_name: Bird species name to display at bottom
+        output_path: Path to save watermarked image
+
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+
+        with Image.open(image_path) as img:
+            # Convert to RGBA for transparency support
+            if img.mode != 'RGBA':
+                img = img.convert('RGBA')
+
+            img_width, img_height = img.size
+
+            # Create overlay for watermark
+            overlay = Image.new('RGBA', img.size, (0, 0, 0, 0))
+            draw = ImageDraw.Draw(overlay)
+
+            # Add logo (top-left)
+            if LOGO_PATH.exists():
+                with Image.open(LOGO_PATH) as logo:
+                    # Resize logo to ~15% of image width
+                    logo_width = int(img_width * 0.15)
+                    logo_ratio = logo_width / logo.width
+                    logo_height = int(logo.height * logo_ratio)
+                    logo = logo.resize((logo_width, logo_height), Image.Resampling.LANCZOS)
+
+                    # Convert logo to RGBA if needed
+                    if logo.mode != 'RGBA':
+                        logo = logo.convert('RGBA')
+
+                    # Position: top-left with more padding (5%)
+                    padding = int(img_width * 0.05)
+                    logo_pos = (padding, padding)
+
+                    # Paste logo with transparency
+                    overlay.paste(logo, logo_pos, logo)
+
+            # Add species name (bottom left, aligned with logo) - subtle white text
+            font_size = int(img_height * 0.025)  # 2.5% of image height
+            font = None
+            for font_path in [
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            ]:
+                try:
+                    font = ImageFont.truetype(font_path, font_size)
+                    break
+                except OSError:
+                    continue
+            if font is None:
+                font = ImageFont.load_default()
+
+            text = species_name
+            bbox = draw.textbbox((0, 0), text, font=font)
+            text_height = bbox[3] - bbox[1]
+
+            # Align left, same padding as logo (5%)
+            text_x = int(img_width * 0.05)
+            text_y = img_height - text_height - int(img_height * 0.03)
+
+            # Subtle stroke for readability
+            stroke_width = max(2, int(font_size * 0.06))
+            draw.text((text_x, text_y), text, font=font, fill=(255, 255, 255, 220),
+                      stroke_width=stroke_width, stroke_fill=(0, 0, 0, 180))
+
+            # Composite overlay onto original
+            watermarked = Image.alpha_composite(img, overlay)
+
+            # Convert back to RGB for JPEG saving
+            watermarked = watermarked.convert('RGB')
+            watermarked.save(output_path, 'JPEG', quality=92)
+
+            return True
+
+    except Exception as e:
+        logger.warning(f"Failed to add watermark: {e}")
+        return False
+
 
 class BirdIdentificationBridge:
     """BirdSense: AI bird classifier with MQTT event publishing"""
@@ -337,7 +428,12 @@ def api_classify():
         # File upload
         file = request.files['image']
         with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp:
-            file.save(tmp.name)
+            # Convert to RGB to handle PNG with alpha channel
+            from PIL import Image
+            img = Image.open(file)
+            if img.mode in ('RGBA', 'P', 'LA'):
+                img = img.convert('RGB')
+            img.save(tmp.name, 'JPEG', quality=95)
             tmp_path = tmp.name
         logger.info(f"API classify: file upload, camera={camera}, lang={lang}, skip_stats={skip_stats}")
     elif image_url:
@@ -409,9 +505,14 @@ def api_classify():
                     logger.warning(f"Failed to create thumbnail: {e}")
                     thumbnail_path = saved_image_path  # Fallback to full image
 
-                # Save original image
-                shutil.copy2(tmp_path, saved_image_path)
-                logger.info(f"Image saved: {saved_image_path}")
+                # Save image with watermark
+                species_display = result.get('species_nl', result.get('species_en', 'Unknown'))
+                if add_watermark(tmp_path, species_display, saved_image_path):
+                    logger.info(f"Image saved with watermark: {saved_image_path}")
+                else:
+                    # Fallback: save without watermark
+                    shutil.copy2(tmp_path, saved_image_path)
+                    logger.info(f"Image saved (no watermark): {saved_image_path}")
             else:
                 # Clean up temp file if not saving
                 Path(tmp_path).unlink(missing_ok=True)

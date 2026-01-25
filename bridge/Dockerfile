@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
     libgomp1 \
+    fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -24,7 +25,7 @@ RUN useradd -m -u 1000 birdsense && \
 
 # Copy application code
 COPY --chown=birdsense:birdsense config.py bridge.py classifier.py database.py ./
-COPY --chown=birdsense:birdsense bird_names_nl.json ./
+COPY --chown=birdsense:birdsense bird_names_nl.json logo.png ./
 
 USER birdsense
 
