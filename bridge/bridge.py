@@ -690,20 +690,19 @@ def api_latest_image(index):
 
     # Get sorted list of images (newest first), excluding thumbnails
     # Sort by timestamp in filename (format: species_timestamp.jpg)
-    def get_timestamp(f):
+    def get_sort_key(f):
+        # Return tuple (timestamp, filename) for consistent ordering
         try:
-            # Extract timestamp from filename: species_name_1234567890.jpg
             parts = f.stem.rsplit('_', 1)
             if len(parts) == 2:
-                return int(parts[1])
+                return (int(parts[1]), f.name)
         except (ValueError, IndexError):
             pass
-        # Fallback to file mtime
-        return int(f.stat().st_mtime)
+        return (int(f.stat().st_mtime), f.name)
 
     images = sorted(
         [f for f in image_dir.glob('*.jpg') if not f.name.startswith('thumb_')],
-        key=get_timestamp,
+        key=get_sort_key,
         reverse=True
     )
 
@@ -828,8 +827,8 @@ def api_list_images():
             'size': f.stat().st_size
         })
 
-    # Sort by timestamp (newest first)
-    images.sort(key=lambda x: x['timestamp'], reverse=True)
+    # Sort by timestamp (newest first), with filename as tiebreaker
+    images.sort(key=lambda x: (x['timestamp'], x['filename']), reverse=True)
 
     total = len(images)
     paginated = images[offset:offset + limit]

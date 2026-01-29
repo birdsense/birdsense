@@ -167,7 +167,7 @@ class BirdStats:
             cursor.execute('''
                 SELECT species_nl as species, camera, confidence, timestamp, image_path, thumbnail_path
                 FROM detections
-                ORDER BY timestamp DESC
+                ORDER BY timestamp DESC, id DESC
                 LIMIT ?
             ''', (limit,))
             return [dict(row) for row in cursor.fetchall()]
