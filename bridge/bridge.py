@@ -687,10 +687,14 @@ def api_list_images():
                     type: string
                   species_en:
                     type: string
+                  species_nl:
+                    type: string
                   timestamp:
                     type: integer
                   url:
                     type: string
+                  size:
+                    type: integer
             total:
               type: integer
             count:
@@ -725,13 +729,32 @@ def api_list_images():
             except ValueError:
                 timestamp = 0
                 species_en = name.replace('_', ' ').title()
-            else:
-                timestamp = 0
-                species_en = name.replace('_', ' ').title()
+        else:
+            timestamp = 0
+            species_en = name.replace('_', ' ').title()
+
+        # Get Dutch species name from database if available
+        species_nl = species_en  # Default to English name
+        try:
+            from database import get_db
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT species_nl FROM detections 
+                    WHERE species_en = ? 
+                    ORDER BY timestamp DESC 
+                    LIMIT 1
+                ''', (species_en,))
+                row = cursor.fetchone()
+                if row:
+                    species_nl = row['species_nl']
+        except Exception as e:
+            logger.error(f"Error querying Dutch species name: {e}")
 
         images.append({
             'filename': f.name,
             'species_en': species_en,
+            'species_nl': species_nl,
             'timestamp': timestamp,
             'url': f"/images/{f.name}",
             'size': f.stat().st_size
