@@ -653,6 +653,70 @@ def api_serve_image(filename):
     return response
 
 
+@api.route('/api/images/latest/<int:index>', methods=['GET'])
+def api_latest_image(index):
+    """Get the Nth latest bird image directly
+    ---
+    tags:
+      - Images
+    parameters:
+      - name: index
+        in: path
+        type: integer
+        required: true
+        description: Image index (0 = most recent, 1 = second most recent, etc.)
+    responses:
+      200:
+        description: Image file
+        content:
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+      404:
+        description: Image not found
+      503:
+        description: Bridge not initialized
+    """
+    global _bridge_instance
+
+    if _bridge_instance is None:
+        return jsonify({'error': 'Bridge not initialized'}), 503
+
+    image_dir = Path(_bridge_instance.config.IMAGE_DIR)
+
+    if not image_dir.exists():
+        return jsonify({'error': 'No images found'}), 404
+
+    # Get sorted list of images (newest first), excluding thumbnails
+    # Sort by timestamp in filename (format: species_timestamp.jpg)
+    def get_timestamp(f):
+        try:
+            # Extract timestamp from filename: species_name_1234567890.jpg
+            parts = f.stem.rsplit('_', 1)
+            if len(parts) == 2:
+                return int(parts[1])
+        except (ValueError, IndexError):
+            pass
+        # Fallback to file mtime
+        return int(f.stat().st_mtime)
+
+    images = sorted(
+        [f for f in image_dir.glob('*.jpg') if not f.name.startswith('thumb_')],
+        key=get_timestamp,
+        reverse=True
+    )
+
+    if index < 0 or index >= len(images):
+        return jsonify({'error': f'Image index {index} not found'}), 404
+
+    image_path = images[index]
+    response = send_file(image_path, mimetype='image/jpeg')
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
+
+
 @api.route('/api/images', methods=['GET'])
 def api_list_images():
     """List saved bird images
@@ -718,7 +782,7 @@ def api_list_images():
 
     # Get all image files (exclude thumbnails)
     images = []
-    for f in sorted(image_dir.glob('*.jpg'), reverse=True):
+    for f in image_dir.glob('*.jpg'):
         # Skip thumbnails
         if f.name.startswith('thumb_'):
             continue
@@ -763,6 +827,9 @@ def api_list_images():
             'url': f"/images/{f.name}",
             'size': f.stat().st_size
         })
+
+    # Sort by timestamp (newest first)
+    images.sort(key=lambda x: x['timestamp'], reverse=True)
 
     total = len(images)
     paginated = images[offset:offset + limit]
