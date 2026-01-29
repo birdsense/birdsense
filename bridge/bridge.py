@@ -742,14 +742,15 @@ def api_list_images():
         try:
             with get_db() as conn:
                 cursor = conn.cursor()
+                # Use LOWER() for case-insensitive match
                 cursor.execute(
                     'SELECT species_nl FROM detections '
-                    'WHERE species_en = ? '
+                    'WHERE LOWER(species_en) = LOWER(?) '
                     'ORDER BY timestamp DESC LIMIT 1',
                     (species_en,)
                 )
                 row = cursor.fetchone()
-                if row and 'species_nl' in row:
+                if row and row['species_nl']:
                     species_nl = row['species_nl']
         except Exception as e:
             logger.error(f"Error querying Dutch species name: {e}")
