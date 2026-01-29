@@ -17,7 +17,7 @@ import paho.mqtt.client as mqtt
 import requests
 from classifier import BirdClassifier
 from config import Config
-from database import BirdStats
+from database import BirdStats, get_db
 from flasgger import Swagger
 from flask import Flask, jsonify, request, send_file
 
@@ -736,15 +736,14 @@ def api_list_images():
         # Get Dutch species name from database if available
         species_nl = species_en  # Default to English name
         try:
-            from database import get_db
             with get_db() as conn:
                 cursor = conn.cursor()
-                cursor.execute('''
-                    SELECT species_nl FROM detections 
-                    WHERE species_en = ? 
-                    ORDER BY timestamp DESC 
-                    LIMIT 1
-                ''', (species_en,))
+                cursor.execute(
+                    'SELECT species_nl FROM detections '
+                    'WHERE species_en = ? '
+                    'ORDER BY timestamp DESC LIMIT 1',
+                    (species_en,)
+                )
                 row = cursor.fetchone()
                 if row and 'species_nl' in row:
                     species_nl = row['species_nl']
