@@ -716,9 +716,13 @@ def api_list_images():
     except ValueError:
         return jsonify({'error': 'Invalid limit/offset'}), 400
 
-    # Get all image files
+    # Get all image files (exclude thumbnails)
     images = []
     for f in sorted(image_dir.glob('*.jpg'), reverse=True):
+        # Skip thumbnails
+        if f.name.startswith('thumb_'):
+            continue
+
         # Parse filename: species_timestamp.jpg
         name = f.stem
         parts = name.rsplit('_', 1)
