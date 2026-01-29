@@ -746,7 +746,7 @@ def api_list_images():
                     LIMIT 1
                 ''', (species_en,))
                 row = cursor.fetchone()
-                if row:
+                if row and 'species_nl' in row:
                     species_nl = row['species_nl']
         except Exception as e:
             logger.error(f"Error querying Dutch species name: {e}")
