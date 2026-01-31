@@ -688,29 +688,29 @@ def api_latest_image(index):
     if not image_dir.exists():
         return jsonify({'error': 'No images found'}), 404
 
-    # Get sorted list of images (newest first), excluding thumbnails
-    # Sort by timestamp in filename (format: species_timestamp.jpg)
-    def get_sort_key(f):
-        # Return tuple (timestamp, filename) for consistent ordering
-        try:
-            parts = f.stem.rsplit('_', 1)
-            if len(parts) == 2:
-                return (int(parts[1]), f.name)
-        except (ValueError, IndexError):
-            pass
-        return (int(f.stat().st_mtime), f.name)
+    # Get images from database (only saved detections, excluding unknowns)
+    image_paths = []
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT image_path FROM detections
+                WHERE image_path IS NOT NULL
+                AND LOWER(species_en) != 'unknown' AND LOWER(species_nl) != 'onbekend'
+                ORDER BY timestamp DESC, id DESC
+            ''')
+            for row in cursor.fetchall():
+                file_path = image_dir / Path(row['image_path']).name
+                if file_path.exists():
+                    image_paths.append(file_path)
+    except Exception as e:
+        logger.error(f"Error querying detections: {e}")
+        return jsonify({'error': 'Database error'}), 500
 
-    images = sorted(
-        [f for f in image_dir.glob('*.jpg')
-         if not f.name.startswith('thumb_') and not f.name.lower().startswith('unknown_')],
-        key=get_sort_key,
-        reverse=True
-    )
-
-    if index < 0 or index >= len(images):
+    if index < 0 or index >= len(image_paths):
         return jsonify({'error': f'Image index {index} not found'}), 404
 
-    image_path = images[index]
+    image_path = image_paths[index]
     response = send_file(image_path, mimetype='image/jpeg')
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -780,56 +780,34 @@ def api_list_images():
     except ValueError:
         return jsonify({'error': 'Invalid limit/offset'}), 400
 
-    # Get all image files (exclude thumbnails and unknowns)
+    # Get images from database (only saved detections, excluding unknowns)
     images = []
-    for f in image_dir.glob('*.jpg'):
-        # Skip thumbnails and unknown species
-        if f.name.startswith('thumb_') or f.name.lower().startswith('unknown_'):
-            continue
-
-        # Parse filename: species_timestamp.jpg
-        name = f.stem
-        parts = name.rsplit('_', 1)
-        if len(parts) == 2:
-            species_en = parts[0].replace('_', ' ').title()
-            try:
-                timestamp = int(parts[1])
-            except ValueError:
-                timestamp = 0
-                species_en = name.replace('_', ' ').title()
-        else:
-            timestamp = 0
-            species_en = name.replace('_', ' ').title()
-
-        # Get Dutch species name from database if available
-        species_nl = species_en  # Default to English name
-        try:
-            with get_db() as conn:
-                cursor = conn.cursor()
-                # Use LOWER() for case-insensitive match
-                cursor.execute(
-                    'SELECT species_nl FROM detections '
-                    'WHERE LOWER(species_en) = LOWER(?) '
-                    'ORDER BY timestamp DESC LIMIT 1',
-                    (species_en,)
-                )
-                row = cursor.fetchone()
-                if row and row['species_nl']:
-                    species_nl = row['species_nl']
-        except Exception as e:
-            logger.error(f"Error querying Dutch species name: {e}")
-
-        images.append({
-            'filename': f.name,
-            'species_en': species_en,
-            'species_nl': species_nl,
-            'timestamp': timestamp,
-            'url': f"/images/{f.name}",
-            'size': f.stat().st_size
-        })
-
-    # Sort by timestamp (newest first), with filename as tiebreaker
-    images.sort(key=lambda x: (x['timestamp'], x['filename']), reverse=True)
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT species_en, species_nl, timestamp, image_path
+                FROM detections
+                WHERE LOWER(species_en) != 'unknown' AND LOWER(species_nl) != 'onbekend'
+                ORDER BY timestamp DESC, id DESC
+            ''')
+            for row in cursor.fetchall():
+                if not row['image_path']:
+                    continue
+                filename = Path(row['image_path']).name
+                file_path = image_dir / filename
+                if not file_path.exists():
+                    continue
+                images.append({
+                    'filename': filename,
+                    'species_en': row['species_en'],
+                    'species_nl': row['species_nl'],
+                    'timestamp': row['timestamp'],
+                    'url': f"/images/{filename}",
+                    'size': file_path.stat().st_size
+                })
+    except Exception as e:
+        logger.error(f"Error querying detections: {e}")
 
     total = len(images)
     paginated = images[offset:offset + limit]
