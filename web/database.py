@@ -161,12 +161,13 @@ class BirdStats:
 
     @staticmethod
     def get_recent_detections(limit: int = 10) -> list[dict]:
-        """Get most recent detections"""
+        """Get most recent detections (excluding unknowns)"""
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT species_nl as species, camera, confidence, timestamp, image_path, thumbnail_path
                 FROM detections
+                WHERE LOWER(species_en) != 'unknown' AND LOWER(species_nl) != 'onbekend'
                 ORDER BY timestamp DESC, id DESC
                 LIMIT ?
             ''', (limit,))
