@@ -701,7 +701,8 @@ def api_latest_image(index):
         return (int(f.stat().st_mtime), f.name)
 
     images = sorted(
-        [f for f in image_dir.glob('*.jpg') if not f.name.startswith('thumb_')],
+        [f for f in image_dir.glob('*.jpg')
+         if not f.name.startswith('thumb_') and not f.name.lower().startswith('unknown_')],
         key=get_sort_key,
         reverse=True
     )
@@ -779,11 +780,11 @@ def api_list_images():
     except ValueError:
         return jsonify({'error': 'Invalid limit/offset'}), 400
 
-    # Get all image files (exclude thumbnails)
+    # Get all image files (exclude thumbnails and unknowns)
     images = []
     for f in image_dir.glob('*.jpg'):
-        # Skip thumbnails
-        if f.name.startswith('thumb_'):
+        # Skip thumbnails and unknown species
+        if f.name.startswith('thumb_') or f.name.lower().startswith('unknown_'):
             continue
 
         # Parse filename: species_timestamp.jpg
