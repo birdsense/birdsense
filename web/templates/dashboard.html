@@ -29,22 +29,30 @@
         <!-- Statistics Cards -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-icon">📊</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+                </div>
                 <div class="stat-value">{{ total }}</div>
                 <div class="stat-label">Total Detections</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">🦜</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg>
+                </div>
                 <div class="stat-value">{{ species_count }}</div>
                 <div class="stat-label">Unique Species</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">📅</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>
+                </div>
                 <div class="stat-value">{{ daily_counts[-1].count if daily_counts else 0 }}</div>
                 <div class="stat-label">Today</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">⚡</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                </div>
                 <div class="stat-value">{% if avg_inference_time_ms %}{{ avg_inference_time_ms }}ms{% else %}-{% endif %}</div>
                 <div class="stat-label">Avg. Inference</div>
             </div>
@@ -54,13 +62,13 @@
         <div class="charts-grid">
             <!-- Daily Activity Chart -->
             <div class="card">
-                <h2><span class="icon">📈</span> Activity Last Week</h2>
+                <h2><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span> Activity Last Week</h2>
                 <canvas id="dailyChart"></canvas>
             </div>
 
             <!-- Top Species -->
             <div class="card">
-                <h2><span class="icon">🏆</span> Most Seen Birds</h2>
+                <h2><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></span> Most Seen Birds</h2>
                 {% if top_species %}
                 <div class="species-list">
                     {% for species, count in top_species %}
@@ -73,7 +81,7 @@
                 </div>
                 {% else %}
                 <div class="empty-state">
-                    <div class="icon">🦉</div>
+                    <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg></div>
                     <h3>No birds seen yet</h3>
                     <p>Use the Test page to classify bird images</p>
                 </div>
@@ -83,7 +91,7 @@
 
         <!-- Recent Detections -->
         <div class="card">
-            <h2><span class="icon">🕐</span> Recent Detections</h2>
+            <h2><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Recent Detections</h2>
             {% if recent %}
             <div class="detections-list">
                 {% for detection in recent %}
@@ -95,16 +103,16 @@
                          data-fullsize="/images/{{ detection.image_path.split('/')[-1] }}"
                          onclick="openLightbox(this.dataset.fullsize)">
                     {% else %}
-                    <div class="detection-icon">🐦</div>
+                    <div class="detection-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg></div>
                     {% endif %}
                     <div class="detection-info">
                         <div class="detection-species">{{ detection.species }}</div>
                         <div class="detection-meta">
-                            <span>📷 {{ detection.camera }}</span>
+                            <span><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> {{ detection.camera }}</span>
                             <span class="confidence-badge {% if detection.confidence >= 80 %}confidence-high{% elif detection.confidence >= 60 %}confidence-medium{% else %}confidence-low{% endif %}">
                                 {{ detection.confidence }}%
                             </span>
-                            <span>🕐 {{ detection.timestamp | timestamp_to_time }}</span>
+                            <span><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> {{ detection.timestamp | timestamp_to_time }}</span>
                         </div>
                     </div>
                 </div>
@@ -117,7 +125,7 @@
             </div>
             {% else %}
             <div class="empty-state">
-                <div class="icon">📭</div>
+                <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div>
                 <h3>No recent detections</h3>
                 <p>Classified birds will appear here</p>
             </div>
@@ -126,7 +134,7 @@
 
         <!-- System Status -->
         <div class="card">
-            <h2><span class="icon">⚙️</span> System Status</h2>
+            <h2><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span> System Status</h2>
             <div class="status-grid">
                 <div class="status-item">
                     <span class="status-label">MQTT Broker</span>
