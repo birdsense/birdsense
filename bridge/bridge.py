@@ -534,7 +534,12 @@ def api_classify():
                 pred['species'] = pred_name
 
             # Save to stats and publish MQTT event unless skipped
-            if not skip_stats:
+            # Skip unknown species
+            species_en_lower = result.get('species_en', '').lower()
+            species_nl_lower = result.get('species_nl', '').lower()
+            is_unknown = species_en_lower == 'unknown' or species_nl_lower == 'onbekend'
+
+            if not skip_stats and not is_unknown:
                 min_conf = _bridge_instance.config.MIN_CONFIDENCE_THRESHOLD
                 if confidence >= min_conf:
                     BirdStats.add_detection(

@@ -37,6 +37,16 @@ def timestamp_to_time(timestamp):
     return ''
 
 
+@app.template_filter('format_duration')
+def format_duration(ms):
+    """Format milliseconds as human-readable duration"""
+    if not ms:
+        return '-'
+    if ms < 1000:
+        return f"{ms}ms"
+    return f"{ms / 1000:.1f}s"
+
+
 @app.route('/')
 def index():
     """Dashboard homepage"""

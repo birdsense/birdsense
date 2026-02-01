@@ -126,20 +126,24 @@ class BirdStats:
 
     @staticmethod
     def get_total_detections() -> int:
-        """Get total number of detections"""
+        """Get total number of detections (excluding unknowns)"""
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT COUNT(*) FROM detections')
+            cursor.execute('''
+                SELECT COUNT(*) FROM detections
+                WHERE LOWER(species_en) != 'unknown' AND LOWER(species_nl) != 'onbekend'
+            ''')
             return cursor.fetchone()[0]
 
     @staticmethod
     def get_species_counts() -> dict[str, int]:
-        """Get detection count per species"""
+        """Get detection count per species (excluding unknowns)"""
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT species_nl, COUNT(*) as count
                 FROM detections
+                WHERE LOWER(species_en) != 'unknown' AND LOWER(species_nl) != 'onbekend'
                 GROUP BY species_nl
                 ORDER BY count DESC
             ''')
@@ -147,12 +151,13 @@ class BirdStats:
 
     @staticmethod
     def get_top_species(limit: int = 10) -> list[tuple]:
-        """Get top N species by detection count"""
+        """Get top N species by detection count (excluding unknowns)"""
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT species_nl, COUNT(*) as count
                 FROM detections
+                WHERE LOWER(species_en) != 'unknown' AND LOWER(species_nl) != 'onbekend'
                 GROUP BY species_nl
                 ORDER BY count DESC
                 LIMIT ?
@@ -175,13 +180,14 @@ class BirdStats:
 
     @staticmethod
     def get_daily_counts(days: int = 7) -> dict[str, int]:
-        """Get detection counts per day for the last N days"""
+        """Get detection counts per day for the last N days (excluding unknowns)"""
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT DATE(timestamp, 'unixepoch') as date, COUNT(*) as count
                 FROM detections
                 WHERE timestamp >= strftime('%s', 'now', ?)
+                  AND LOWER(species_en) != 'unknown' AND LOWER(species_nl) != 'onbekend'
                 GROUP BY date
                 ORDER BY date
             ''', (f'-{days} days',))
