@@ -188,59 +188,133 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.7);
             z-index: 1000;
             align-items: center;
             justify-content: center;
+            backdrop-filter: blur(4px);
         }
         .correction-modal.active {
             display: flex;
         }
         .correction-form {
             background: var(--card-bg);
-            padding: 2rem;
+            padding: 1.5rem;
             border-radius: 1rem;
-            max-width: 400px;
-            width: 90%;
+            max-width: 480px;
+            width: 95%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
         }
-        .correction-form h3 {
-            margin-bottom: 1rem;
+        .correction-form-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .correction-form-header h3 {
+            margin: 0;
             color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .correction-form-close {
+            background: none;
+            border: none;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            transition: all 0.2s;
+        }
+        .correction-form-close:hover {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+        }
+        .correction-form .form-group {
+            margin-bottom: 1rem;
         }
         .correction-form label {
             display: block;
             margin-bottom: 0.5rem;
             color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
         }
         .correction-form input, .correction-form textarea {
             width: 100%;
-            padding: 0.75rem;
+            padding: 0.75rem 1rem;
             border: 1px solid var(--border-color);
             border-radius: 0.5rem;
             background: var(--bg-secondary);
             color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+        .correction-form input:focus, .correction-form textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .correction-form input::placeholder {
+            color: var(--text-tertiary);
+        }
+        .correction-form .current-species {
+            background: var(--bg-secondary);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
             margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .correction-form .current-species-label {
+            color: var(--text-tertiary);
+            font-size: 0.8rem;
+        }
+        .correction-form .current-species-value {
+            color: var(--text-primary);
+            font-weight: 500;
         }
         .correction-form .btn-group {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.75rem;
             justify-content: flex-end;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
         }
         .correction-form .btn-cancel {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
+            background: transparent;
+            color: var(--text-secondary);
             border: 1px solid var(--border-color);
-            padding: 0.5rem 1rem;
+            padding: 0.625rem 1.25rem;
             border-radius: 0.5rem;
             cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .correction-form .btn-cancel:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
         }
         .correction-form .btn-save {
             background: #10b981;
             color: white;
             border: none;
-            padding: 0.5rem 1rem;
+            padding: 0.625rem 1.25rem;
             border-radius: 0.5rem;
             cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .correction-form .btn-save:hover {
+            background: #059669;
         }
 
         .pagination {
@@ -431,17 +505,38 @@
     </div>
 
     <!-- Correction Modal -->
-    <div class="correction-modal" id="correctionModal">
+    <div class="correction-modal" id="correctionModal" onclick="if(event.target === this) closeCorrectionModal()">
         <div class="correction-form">
-            <h3>Correct Classification</h3>
+            <div class="correction-form-header">
+                <h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                    Correct Classification
+                </h3>
+                <button class="correction-form-close" onclick="closeCorrectionModal()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
             <input type="hidden" id="correctionEntryId">
-            <label for="correctedSpecies">Correct Species:</label>
-            <input type="text" id="correctedSpecies" placeholder="Enter correct species name">
-            <label for="correctionNotes">Notes (optional):</label>
-            <textarea id="correctionNotes" rows="2" placeholder="Add any notes..."></textarea>
+
+            <div class="current-species">
+                <span class="current-species-label">Current:</span>
+                <span class="current-species-value" id="currentSpeciesDisplay">-</span>
+            </div>
+
+            <div class="form-group">
+                <label for="correctedSpecies">Select correct species:</label>
+                <input type="text" id="correctedSpecies" list="speciesList" placeholder="Start typing to search..." autocomplete="off">
+                <datalist id="speciesList"></datalist>
+            </div>
+
+            <div class="form-group">
+                <label for="correctionNotes">Notes (optional):</label>
+                <textarea id="correctionNotes" rows="2" placeholder="Why is this correction needed?"></textarea>
+            </div>
+
             <div class="btn-group">
                 <button class="btn-cancel" onclick="closeCorrectionModal()">Cancel</button>
-                <button class="btn-save" onclick="submitCorrection()">Save</button>
+                <button class="btn-save" onclick="submitCorrection()">Save Correction</button>
             </div>
         </div>
     </div>
@@ -453,6 +548,30 @@
     </div>
 
     <script>
+        // Species list cache
+        let speciesList = [];
+
+        // Load species list on page load
+        async function loadSpeciesList() {
+            try {
+                const bridgeUrl = '{{ bridge_url }}';
+                const response = await fetch(`${bridgeUrl}/api/species`);
+                const data = await response.json();
+                speciesList = data.species || [];
+
+                // Populate datalist
+                const datalist = document.getElementById('speciesList');
+                datalist.innerHTML = speciesList.map(s =>
+                    `<option value="${s.nl}">${s.nl} (${s.en})</option>`
+                ).join('');
+            } catch (err) {
+                console.warn('Could not load species list:', err);
+            }
+        }
+
+        // Load on page ready
+        document.addEventListener('DOMContentLoaded', loadSpeciesList);
+
         function openLightbox(src) {
             const lightbox = document.getElementById('lightbox');
             const img = document.getElementById('lightbox-img');
@@ -486,13 +605,21 @@
 
         function openCorrectionModal(entryId, currentSpecies) {
             document.getElementById('correctionEntryId').value = entryId;
-            document.getElementById('correctedSpecies').value = currentSpecies;
+            document.getElementById('currentSpeciesDisplay').textContent = currentSpecies || 'Unknown';
+            document.getElementById('correctedSpecies').value = '';
             document.getElementById('correctionNotes').value = '';
             document.getElementById('correctionModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+
+            // Focus the input after a brief delay
+            setTimeout(() => {
+                document.getElementById('correctedSpecies').focus();
+            }, 100);
         }
 
         function closeCorrectionModal() {
             document.getElementById('correctionModal').classList.remove('active');
+            document.body.style.overflow = '';
         }
 
         function submitCorrection() {
@@ -501,7 +628,7 @@
             const notes = document.getElementById('correctionNotes').value.trim();
 
             if (!species) {
-                alert('Please enter the correct species name');
+                document.getElementById('correctedSpecies').focus();
                 return;
             }
 
@@ -536,11 +663,16 @@
 
         // Click on prediction chip to use as correction
         document.querySelectorAll('.prediction-chip').forEach(chip => {
+            chip.style.cursor = 'pointer';
             chip.addEventListener('click', function() {
                 const species = this.dataset.species;
                 const entry = this.closest('.log-entry');
                 const entryId = entry.dataset.id;
-                openCorrectionModal(entryId, species);
+                // Get current species from entry
+                const currentSpecies = entry.querySelector('.log-species')?.textContent.trim().split('(')[0].trim();
+                openCorrectionModal(entryId, currentSpecies);
+                // Pre-fill with clicked alternative
+                document.getElementById('correctedSpecies').value = this.textContent.split('(')[0].trim();
             });
         });
     </script>

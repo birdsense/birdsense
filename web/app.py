@@ -153,7 +153,8 @@ def log():
                           stats=stats,
                           filter=filter_type,
                           offset=offset,
-                          limit=limit)
+                          limit=limit,
+                          bridge_url=os.environ.get('BRIDGE_EXTERNAL_URL', 'http://localhost:5001'))
 
 
 @app.route('/api/log/<int:entry_id>', methods=['PUT'])

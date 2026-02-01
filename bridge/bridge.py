@@ -1008,6 +1008,59 @@ def api_update_classification_log(entry_id):
     return jsonify({'error': 'Entry not found'}), 404
 
 
+@api.route('/api/species', methods=['GET'])
+def api_species_list():
+    """Get list of known bird species
+    ---
+    tags:
+      - Classification
+    responses:
+      200:
+        description: List of bird species with EN and NL names
+        schema:
+          type: object
+          properties:
+            species:
+              type: array
+              items:
+                type: object
+                properties:
+                  en:
+                    type: string
+                  nl:
+                    type: string
+    """
+    global _bridge_instance
+
+    species_list = []
+    seen = set()
+
+    # Load from translation file
+    try:
+        import json
+        translation_file = Path(__file__).parent / "bird_names_nl.json"
+        if translation_file.exists():
+            with open(translation_file, 'r', encoding='utf-8') as f:
+                translations = json.load(f)
+
+            for en_name, nl_name in translations.items():
+                if en_name.startswith('_'):
+                    continue
+                # Normalize and deduplicate
+                key = nl_name.lower()
+                if key not in seen:
+                    seen.add(key)
+                    species_list.append({'en': en_name, 'nl': nl_name})
+
+        # Sort by Dutch name
+        species_list.sort(key=lambda x: x['nl'].lower())
+
+    except Exception as e:
+        logger.error(f"Error loading species list: {e}")
+
+    return jsonify({'species': species_list, 'count': len(species_list)})
+
+
 @api.route('/api/reload-config', methods=['POST'])
 def api_reload_config():
     """Reload configuration without restart
