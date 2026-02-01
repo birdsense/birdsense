@@ -153,8 +153,7 @@ def log():
                           stats=stats,
                           filter=filter_type,
                           offset=offset,
-                          limit=limit,
-                          bridge_url=os.environ.get('BRIDGE_EXTERNAL_URL', 'http://localhost:5001'))
+                          limit=limit)
 
 
 @app.route('/api/log/<int:entry_id>', methods=['PUT'])
@@ -177,6 +176,19 @@ def api_update_log(entry_id):
     if ClassificationLog.update_status(entry_id, status, species_corrected, notes):
         return jsonify({'status': 'ok'})
     return jsonify({'error': 'Entry not found'}), 404
+
+
+@app.route('/api/species')
+def api_species():
+    """Proxy endpoint to get species list from bridge"""
+    try:
+        bridge_url = os.environ.get('BRIDGE_URL', 'http://host.docker.internal:5001')
+        response = requests.get(f"{bridge_url}/api/species", timeout=5)
+        if response.status_code == 200:
+            return jsonify(response.json())
+        return jsonify({'species': [], 'count': 0})
+    except Exception:
+        return jsonify({'species': [], 'count': 0})
 
 
 @app.route('/api-docs')

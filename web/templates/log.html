@@ -188,23 +188,23 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.85);
             z-index: 1000;
             align-items: center;
             justify-content: center;
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(8px);
         }
         .correction-modal.active {
             display: flex;
         }
         .correction-form {
-            background: var(--card-bg);
+            background: #1e293b;
             padding: 1.5rem;
             border-radius: 1rem;
             max-width: 480px;
             width: 95%;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            border: 1px solid var(--border-color);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            border: 1px solid #334155;
         }
         .correction-form-header {
             display: flex;
@@ -212,11 +212,11 @@
             justify-content: space-between;
             margin-bottom: 1.5rem;
             padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid #334155;
         }
         .correction-form-header h3 {
             margin: 0;
-            color: var(--text-primary);
+            color: #f1f5f9;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -224,15 +224,15 @@
         .correction-form-close {
             background: none;
             border: none;
-            color: var(--text-tertiary);
+            color: #94a3b8;
             cursor: pointer;
             padding: 0.25rem;
             border-radius: 0.25rem;
             transition: all 0.2s;
         }
         .correction-form-close:hover {
-            color: var(--text-primary);
-            background: var(--bg-secondary);
+            color: #f1f5f9;
+            background: #0f172a;
         }
         .correction-form .form-group {
             margin-bottom: 1rem;
@@ -240,30 +240,30 @@
         .correction-form label {
             display: block;
             margin-bottom: 0.5rem;
-            color: var(--text-secondary);
+            color: #94a3b8;
             font-size: 0.875rem;
             font-weight: 500;
         }
         .correction-form input, .correction-form textarea {
             width: 100%;
             padding: 0.75rem 1rem;
-            border: 1px solid var(--border-color);
+            border: 1px solid #334155;
             border-radius: 0.5rem;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
+            background: #0f172a;
+            color: #f1f5f9;
             font-size: 0.95rem;
             transition: border-color 0.2s;
             box-sizing: border-box;
         }
         .correction-form input:focus, .correction-form textarea:focus {
             outline: none;
-            border-color: var(--primary);
+            border-color: #10b981;
         }
         .correction-form input::placeholder {
-            color: var(--text-tertiary);
+            color: #64748b;
         }
         .correction-form .current-species {
-            background: var(--bg-secondary);
+            background: #0f172a;
             padding: 0.75rem 1rem;
             border-radius: 0.5rem;
             margin-bottom: 1rem;
@@ -272,11 +272,11 @@
             gap: 0.5rem;
         }
         .correction-form .current-species-label {
-            color: var(--text-tertiary);
+            color: #64748b;
             font-size: 0.8rem;
         }
         .correction-form .current-species-value {
-            color: var(--text-primary);
+            color: #f1f5f9;
             font-weight: 500;
         }
         .correction-form .btn-group {
@@ -285,12 +285,12 @@
             justify-content: flex-end;
             margin-top: 1.5rem;
             padding-top: 1rem;
-            border-top: 1px solid var(--border-color);
+            border-top: 1px solid #334155;
         }
         .correction-form .btn-cancel {
             background: transparent;
-            color: var(--text-secondary);
-            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            border: 1px solid #334155;
             padding: 0.625rem 1.25rem;
             border-radius: 0.5rem;
             cursor: pointer;
@@ -299,8 +299,8 @@
             transition: all 0.2s;
         }
         .correction-form .btn-cancel:hover {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
+            background: #0f172a;
+            color: #f1f5f9;
         }
         .correction-form .btn-save {
             background: #10b981;
@@ -315,6 +315,56 @@
         }
         .correction-form .btn-save:hover {
             background: #059669;
+        }
+
+        /* Custom autocomplete dropdown */
+        .autocomplete-wrapper {
+            position: relative;
+        }
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 250px;
+            overflow-y: auto;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-top: none;
+            border-radius: 0 0 0.5rem 0.5rem;
+            z-index: 100;
+            display: none;
+        }
+        .autocomplete-dropdown.active {
+            display: block;
+        }
+        .autocomplete-item {
+            padding: 0.625rem 1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+        }
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        .autocomplete-item:hover,
+        .autocomplete-item.selected {
+            background: #334155;
+        }
+        .autocomplete-item-nl {
+            color: #f1f5f9;
+            font-weight: 500;
+        }
+        .autocomplete-item-en {
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+        .autocomplete-empty {
+            padding: 1rem;
+            color: #64748b;
+            text-align: center;
         }
 
         .pagination {
@@ -525,8 +575,10 @@
 
             <div class="form-group">
                 <label for="correctedSpecies">Select correct species:</label>
-                <input type="text" id="correctedSpecies" list="speciesList" placeholder="Start typing to search..." autocomplete="off">
-                <datalist id="speciesList"></datalist>
+                <div class="autocomplete-wrapper">
+                    <input type="text" id="correctedSpecies" placeholder="Type to search..." autocomplete="off">
+                    <div class="autocomplete-dropdown" id="speciesDropdown"></div>
+                </div>
             </div>
 
             <div class="form-group">
@@ -536,7 +588,7 @@
 
             <div class="btn-group">
                 <button class="btn-cancel" onclick="closeCorrectionModal()">Cancel</button>
-                <button class="btn-save" onclick="submitCorrection()">Save Correction</button>
+                <button class="btn-save" onclick="submitCorrection()">Save</button>
             </div>
         </div>
     </div>
@@ -550,27 +602,107 @@
     <script>
         // Species list cache
         let speciesList = [];
+        let selectedIndex = -1;
 
         // Load species list on page load
         async function loadSpeciesList() {
             try {
-                const bridgeUrl = '{{ bridge_url }}';
-                const response = await fetch(`${bridgeUrl}/api/species`);
+                const response = await fetch('/api/species');
                 const data = await response.json();
                 speciesList = data.species || [];
-
-                // Populate datalist
-                const datalist = document.getElementById('speciesList');
-                datalist.innerHTML = speciesList.map(s =>
-                    `<option value="${s.nl}">${s.nl} (${s.en})</option>`
-                ).join('');
+                console.log(`Loaded ${speciesList.length} species`);
             } catch (err) {
                 console.warn('Could not load species list:', err);
             }
         }
 
-        // Load on page ready
-        document.addEventListener('DOMContentLoaded', loadSpeciesList);
+        // Filter and show dropdown
+        function filterSpecies(query) {
+            const dropdown = document.getElementById('speciesDropdown');
+            if (!query || query.length < 1) {
+                dropdown.classList.remove('active');
+                return;
+            }
+
+            const q = query.toLowerCase();
+            const filtered = speciesList.filter(s =>
+                s.nl.toLowerCase().includes(q) || s.en.toLowerCase().includes(q)
+            ).slice(0, 15);
+
+            if (filtered.length === 0) {
+                dropdown.innerHTML = '<div class="autocomplete-empty">No results</div>';
+            } else {
+                dropdown.innerHTML = filtered.map((s, i) =>
+                    `<div class="autocomplete-item${i === selectedIndex ? ' selected' : ''}" data-value="${s.en}" data-index="${i}">
+                        <span class="autocomplete-item-nl">${s.en}</span>
+                    </div>`
+                ).join('');
+            }
+            dropdown.classList.add('active');
+            selectedIndex = -1;
+        }
+
+        // Handle input events
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSpeciesList();
+
+            const input = document.getElementById('correctedSpecies');
+            const dropdown = document.getElementById('speciesDropdown');
+
+            input.addEventListener('input', (e) => filterSpecies(e.target.value));
+            input.addEventListener('focus', (e) => {
+                if (e.target.value) filterSpecies(e.target.value);
+            });
+
+            // Handle keyboard navigation
+            input.addEventListener('keydown', (e) => {
+                const items = dropdown.querySelectorAll('.autocomplete-item');
+                if (!items.length) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    updateSelection(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, 0);
+                    updateSelection(items);
+                } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                    e.preventDefault();
+                    selectItem(items[selectedIndex]);
+                } else if (e.key === 'Escape') {
+                    dropdown.classList.remove('active');
+                }
+            });
+
+            // Handle click on dropdown items
+            dropdown.addEventListener('click', (e) => {
+                const item = e.target.closest('.autocomplete-item');
+                if (item) selectItem(item);
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.autocomplete-wrapper')) {
+                    dropdown.classList.remove('active');
+                }
+            });
+        });
+
+        function updateSelection(items) {
+            items.forEach((item, i) => {
+                item.classList.toggle('selected', i === selectedIndex);
+            });
+            if (selectedIndex >= 0) {
+                items[selectedIndex].scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        function selectItem(item) {
+            const value = item.dataset.value;
+            document.getElementById('correctedSpecies').value = value;
+            document.getElementById('speciesDropdown').classList.remove('active');
+        }
 
         function openLightbox(src) {
             const lightbox = document.getElementById('lightbox');
