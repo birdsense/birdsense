@@ -17,7 +17,7 @@ import paho.mqtt.client as mqtt
 import requests
 from classifier import BirdClassifier
 from config import Config
-from database import BirdStats, get_db
+from database import BirdStats, ClassificationLog, get_db
 from flasgger import Swagger
 from flask import Flask, jsonify, request, send_file
 
@@ -485,10 +485,17 @@ def api_classify():
     try:
         result = _bridge_instance.classifier.classify(tmp_path)
         if result:
-            # Save image permanently
+            confidence = result.get('confidence', 0)
+            species_en_lower = result.get('species_en', '').lower()
+            species_nl_lower = result.get('species_nl', '').lower()
+            is_unknown = species_en_lower == 'unknown' or species_nl_lower == 'onbekend'
+            min_conf = _bridge_instance.config.MIN_CONFIDENCE_THRESHOLD
+            timestamp = int(time.time())
+
+            # Save image for ALL classifications (including unknowns) for the log
             saved_image_path = None
-            if _bridge_instance.config.SAVE_IMAGES and result.get('confidence', 0) >= _bridge_instance.config.MIN_CONFIDENCE_THRESHOLD:
-                timestamp = int(time.time())
+            thumbnail_path = None
+            if _bridge_instance.config.SAVE_IMAGES:
                 species_safe = result.get('species_en', 'unknown').replace(' ', '_').lower()
                 saved_image_path = str(image_dir / f"{species_safe}_{timestamp}.jpg")
 
@@ -513,12 +520,11 @@ def api_classify():
                     # Fallback: save without watermark
                     shutil.copy2(tmp_path, saved_image_path)
                     logger.info(f"Image saved (no watermark): {saved_image_path}")
-            else:
-                # Clean up temp file if not saving
-                Path(tmp_path).unlink(missing_ok=True)
+
+            # Clean up temp file
+            Path(tmp_path).unlink(missing_ok=True)
 
             # Update species field based on language preference
-            confidence = result.get('confidence', 0)
             if lang == 'nl':
                 species_name = result.get('species_nl', result.get('species_en', 'Unknown'))
             else:
@@ -533,37 +539,43 @@ def api_classify():
                     pred_name = pred.get('species_en', 'Unknown')
                 pred['species'] = pred_name
 
-            # Save to stats and publish MQTT event unless skipped
-            # Skip unknown species
-            species_en_lower = result.get('species_en', '').lower()
-            species_nl_lower = result.get('species_nl', '').lower()
-            is_unknown = species_en_lower == 'unknown' or species_nl_lower == 'onbekend'
+            # Always log to classification_log (for review/correction)
+            if not skip_stats:
+                ClassificationLog.add_entry(
+                    species_en=result.get('species_en', 'Unknown'),
+                    species_nl=result.get('species_nl', 'Unknown'),
+                    confidence=confidence,
+                    camera=camera,
+                    top_predictions=result.get('top_predictions', []),
+                    image_path=saved_image_path,
+                    timestamp=timestamp
+                )
+                logger.info(f"Classification logged: {result.get('species_en')} ({confidence}%)")
 
-            if not skip_stats and not is_unknown:
-                min_conf = _bridge_instance.config.MIN_CONFIDENCE_THRESHOLD
-                if confidence >= min_conf:
-                    BirdStats.add_detection(
-                        species_nl=result.get('species_nl', 'Unknown'),
-                        species_en=result.get('species_en'),
-                        camera=camera,
-                        confidence=confidence,
-                        inference_time_ms=result.get('inference_time_ms'),
-                        image_path=saved_image_path,
-                        thumbnail_path=thumbnail_path if thumbnail_path != saved_image_path else None
-                    )
-                    # Publish to MQTT if configured
-                    if _bridge_instance.config.MQTT_BROKER:
-                        bird_data = {
-                            'species': result['species'],
-                            'species_nl': result.get('species_nl', 'Unknown'),
-                            'species_en': result.get('species_en', 'Unknown'),
-                            'confidence': confidence,
-                            'camera': camera,
-                            'timestamp': int(time.time()),
-                            'image_path': saved_image_path,
-                            'top_predictions': result.get('top_predictions', [])
-                        }
-                        _bridge_instance.publish_bird_detection(bird_data)
+            # Save to stats and publish MQTT only for known species above threshold
+            if not skip_stats and not is_unknown and confidence >= min_conf:
+                BirdStats.add_detection(
+                    species_nl=result.get('species_nl', 'Unknown'),
+                    species_en=result.get('species_en'),
+                    camera=camera,
+                    confidence=confidence,
+                    inference_time_ms=result.get('inference_time_ms'),
+                    image_path=saved_image_path,
+                    thumbnail_path=thumbnail_path if thumbnail_path != saved_image_path else None
+                )
+                # Publish to MQTT if configured
+                if _bridge_instance.config.MQTT_BROKER:
+                    bird_data = {
+                        'species': result['species'],
+                        'species_nl': result.get('species_nl', 'Unknown'),
+                        'species_en': result.get('species_en', 'Unknown'),
+                        'confidence': confidence,
+                        'camera': camera,
+                        'timestamp': timestamp,
+                        'image_path': saved_image_path,
+                        'top_predictions': result.get('top_predictions', [])
+                    }
+                    _bridge_instance.publish_bird_detection(bird_data)
             return jsonify(result)
         else:
             Path(tmp_path).unlink(missing_ok=True)
@@ -822,6 +834,178 @@ def api_list_images():
         'total': total,
         'count': len(paginated)
     })
+
+
+@api.route('/api/log', methods=['GET'])
+def api_classification_log():
+    """Get classification log entries
+    ---
+    tags:
+      - Classification Log
+    parameters:
+      - name: limit
+        in: query
+        type: integer
+        required: false
+        description: Maximum number of entries to return
+        default: 50
+      - name: offset
+        in: query
+        type: integer
+        required: false
+        description: Offset for pagination
+        default: 0
+      - name: status
+        in: query
+        type: string
+        required: false
+        description: Filter by status (pending, confirmed, corrected)
+        enum: [pending, confirmed, corrected]
+      - name: unknowns_only
+        in: query
+        type: boolean
+        required: false
+        description: Only show unknown classifications
+        default: false
+    responses:
+      200:
+        description: List of classification log entries
+        schema:
+          type: object
+          properties:
+            entries:
+              type: array
+              items:
+                type: object
+            total:
+              type: integer
+            count:
+              type: integer
+    """
+    try:
+        limit = int(request.args.get('limit', 50))
+        offset = int(request.args.get('offset', 0))
+    except ValueError:
+        return jsonify({'error': 'Invalid limit/offset'}), 400
+
+    status = request.args.get('status')
+    unknowns_only = request.args.get('unknowns_only', 'false').lower() in ('true', '1', 'yes')
+
+    entries = ClassificationLog.get_entries(limit=limit, offset=offset, status=status,
+                                            unknowns_only=unknowns_only)
+    total = ClassificationLog.get_count(status=status, unknowns_only=unknowns_only)
+
+    return jsonify({
+        'entries': entries,
+        'total': total,
+        'count': len(entries)
+    })
+
+
+@api.route('/api/log/stats', methods=['GET'])
+def api_classification_log_stats():
+    """Get classification log statistics
+    ---
+    tags:
+      - Classification Log
+    responses:
+      200:
+        description: Classification log statistics
+        schema:
+          type: object
+          properties:
+            total:
+              type: integer
+            pending:
+              type: integer
+            confirmed:
+              type: integer
+            corrected:
+              type: integer
+            unknowns:
+              type: integer
+    """
+    stats = ClassificationLog.get_stats()
+    return jsonify(stats)
+
+
+@api.route('/api/log/<int:entry_id>', methods=['GET'])
+def api_classification_log_entry(entry_id):
+    """Get a specific classification log entry
+    ---
+    tags:
+      - Classification Log
+    parameters:
+      - name: entry_id
+        in: path
+        type: integer
+        required: true
+        description: Log entry ID
+    responses:
+      200:
+        description: Classification log entry
+      404:
+        description: Entry not found
+    """
+    entry = ClassificationLog.get_entry(entry_id)
+    if entry:
+        return jsonify(entry)
+    return jsonify({'error': 'Entry not found'}), 404
+
+
+@api.route('/api/log/<int:entry_id>', methods=['PUT'])
+def api_update_classification_log(entry_id):
+    """Update a classification log entry status
+    ---
+    tags:
+      - Classification Log
+    parameters:
+      - name: entry_id
+        in: path
+        type: integer
+        required: true
+        description: Log entry ID
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [confirmed, corrected]
+              description: New status
+            species_corrected:
+              type: string
+              description: Corrected species name (required if status is 'corrected')
+            notes:
+              type: string
+              description: Optional notes
+    responses:
+      200:
+        description: Entry updated successfully
+      400:
+        description: Invalid request
+      404:
+        description: Entry not found
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    status = data.get('status')
+    if status not in ('confirmed', 'corrected'):
+        return jsonify({'error': 'Invalid status. Must be "confirmed" or "corrected"'}), 400
+
+    species_corrected = data.get('species_corrected')
+    if status == 'corrected' and not species_corrected:
+        return jsonify({'error': 'species_corrected is required when status is "corrected"'}), 400
+
+    notes = data.get('notes')
+
+    if ClassificationLog.update_status(entry_id, status, species_corrected, notes):
+        return jsonify({'status': 'ok', 'message': 'Entry updated'})
+    return jsonify({'error': 'Entry not found'}), 404
 
 
 @api.route('/api/reload-config', methods=['POST'])

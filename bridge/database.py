@@ -100,6 +100,35 @@ def init_db():
             )
         ''')
 
+        # Classification log table (for all classifications including unknowns)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS classification_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                species_en TEXT,
+                species_nl TEXT,
+                confidence INTEGER NOT NULL,
+                camera TEXT NOT NULL,
+                timestamp INTEGER NOT NULL,
+                top_predictions TEXT,
+                image_path TEXT,
+                status TEXT DEFAULT 'pending',
+                species_corrected TEXT,
+                corrected_at DATETIME,
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Create index for classification log queries
+        cursor.execute('''
+            CREATE INDEX IF NOT EXISTS idx_classification_log_timestamp
+            ON classification_log(timestamp DESC)
+        ''')
+        cursor.execute('''
+            CREATE INDEX IF NOT EXISTS idx_classification_log_status
+            ON classification_log(status)
+        ''')
+
         logger.info(f"Database initialized at {DATABASE_FILE}")
 
 
@@ -206,6 +235,168 @@ class BirdStats:
             'daily_counts': BirdStats.get_daily_counts(7),
             'avg_inference_time_ms': BirdStats.get_avg_inference_time()
         }
+
+
+class ClassificationLog:
+    """Manage classification log for all classifications including unknowns"""
+
+    @staticmethod
+    def add_entry(species_en: str, species_nl: str, confidence: int, camera: str,
+                  top_predictions: list = None, image_path: str = None,
+                  timestamp: int = None):
+        """Add a new classification to the log"""
+        import json
+        if timestamp is None:
+            timestamp = int(datetime.now().timestamp())
+
+        top_predictions_json = json.dumps(top_predictions) if top_predictions else None
+
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO classification_log
+                (species_en, species_nl, confidence, camera, timestamp, top_predictions, image_path)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (species_en, species_nl, confidence, camera, timestamp,
+                  top_predictions_json, image_path))
+            log_id = cursor.lastrowid
+
+        logger.debug(f"Classification logged: {species_nl} ({confidence}%) - ID: {log_id}")
+        return log_id
+
+    @staticmethod
+    def get_entries(limit: int = 50, offset: int = 0, status: str = None,
+                    unknowns_only: bool = False) -> list[dict]:
+        """Get classification log entries with optional filters"""
+        import json
+        with get_db() as conn:
+            cursor = conn.cursor()
+
+            conditions = []
+            params = []
+
+            if status:
+                conditions.append("status = ?")
+                params.append(status)
+
+            if unknowns_only:
+                conditions.append("(LOWER(species_en) = 'unknown' OR LOWER(species_nl) = 'onbekend')")
+
+            where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+            cursor.execute(f'''
+                SELECT id, species_en, species_nl, confidence, camera, timestamp,
+                       top_predictions, image_path, status, species_corrected,
+                       corrected_at, notes, created_at
+                FROM classification_log
+                {where_clause}
+                ORDER BY timestamp DESC, id DESC
+                LIMIT ? OFFSET ?
+            ''', (*params, limit, offset))
+
+            entries = []
+            for row in cursor.fetchall():
+                entry = dict(row)
+                if entry['top_predictions']:
+                    entry['top_predictions'] = json.loads(entry['top_predictions'])
+                entries.append(entry)
+
+            return entries
+
+    @staticmethod
+    def get_entry(entry_id: int) -> dict | None:
+        """Get a single classification log entry by ID"""
+        import json
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT id, species_en, species_nl, confidence, camera, timestamp,
+                       top_predictions, image_path, status, species_corrected,
+                       corrected_at, notes, created_at
+                FROM classification_log
+                WHERE id = ?
+            ''', (entry_id,))
+            row = cursor.fetchone()
+            if row:
+                entry = dict(row)
+                if entry['top_predictions']:
+                    entry['top_predictions'] = json.loads(entry['top_predictions'])
+                return entry
+            return None
+
+    @staticmethod
+    def update_status(entry_id: int, status: str, species_corrected: str = None,
+                      notes: str = None) -> bool:
+        """Update the status of a classification log entry"""
+        with get_db() as conn:
+            cursor = conn.cursor()
+            if status == 'corrected' and species_corrected:
+                cursor.execute('''
+                    UPDATE classification_log
+                    SET status = ?, species_corrected = ?, corrected_at = CURRENT_TIMESTAMP, notes = ?
+                    WHERE id = ?
+                ''', (status, species_corrected, notes, entry_id))
+            else:
+                cursor.execute('''
+                    UPDATE classification_log
+                    SET status = ?, notes = ?
+                    WHERE id = ?
+                ''', (status, notes, entry_id))
+
+            return cursor.rowcount > 0
+
+    @staticmethod
+    def get_count(status: str = None, unknowns_only: bool = False) -> int:
+        """Get count of classification log entries"""
+        with get_db() as conn:
+            cursor = conn.cursor()
+
+            conditions = []
+            params = []
+
+            if status:
+                conditions.append("status = ?")
+                params.append(status)
+
+            if unknowns_only:
+                conditions.append("(LOWER(species_en) = 'unknown' OR LOWER(species_nl) = 'onbekend')")
+
+            where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+            cursor.execute(f'SELECT COUNT(*) FROM classification_log {where_clause}', params)
+            return cursor.fetchone()[0]
+
+    @staticmethod
+    def get_stats() -> dict:
+        """Get statistics about classification log"""
+        with get_db() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute('SELECT COUNT(*) FROM classification_log')
+            total = cursor.fetchone()[0]
+
+            cursor.execute("SELECT COUNT(*) FROM classification_log WHERE status = 'pending'")
+            pending = cursor.fetchone()[0]
+
+            cursor.execute("SELECT COUNT(*) FROM classification_log WHERE status = 'confirmed'")
+            confirmed = cursor.fetchone()[0]
+
+            cursor.execute("SELECT COUNT(*) FROM classification_log WHERE status = 'corrected'")
+            corrected = cursor.fetchone()[0]
+
+            cursor.execute("""
+                SELECT COUNT(*) FROM classification_log
+                WHERE LOWER(species_en) = 'unknown' OR LOWER(species_nl) = 'onbekend'
+            """)
+            unknowns = cursor.fetchone()[0]
+
+            return {
+                'total': total,
+                'pending': pending,
+                'confirmed': confirmed,
+                'corrected': corrected,
+                'unknowns': unknowns
+            }
 
 
 class BirdConfig:

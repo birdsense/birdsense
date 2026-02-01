@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classification Log - BirdSense</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
+    <style>
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .filter-tab {
+            padding: 0.5rem 1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .filter-tab:hover {
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+        .filter-tab.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        .filter-tab .count {
+            background: rgba(255,255,255,0.2);
+            padding: 0.1rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+        .filter-tab:not(.active) .count {
+            background: var(--bg-secondary);
+        }
+
+        .log-entry {
+            display: grid;
+            grid-template-columns: 100px 1fr auto;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            align-items: start;
+        }
+        .log-entry.is-unknown {
+            border-left: 3px solid #f59e0b;
+        }
+        .log-entry.is-corrected {
+            border-left: 3px solid #10b981;
+        }
+        .log-entry.is-confirmed {
+            border-left: 3px solid #3b82f6;
+        }
+
+        .log-image {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            background: var(--bg-secondary);
+        }
+        .log-image-placeholder {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-secondary);
+            border-radius: 0.5rem;
+            color: var(--text-tertiary);
+        }
+
+        .log-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .log-species {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .log-species-corrected {
+            color: #10b981;
+            font-size: 0.9rem;
+        }
+        .log-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            flex-wrap: wrap;
+        }
+        .log-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .top-predictions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+        .prediction-chip {
+            background: var(--bg-secondary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .prediction-chip.selected {
+            background: var(--primary);
+            color: white;
+        }
+
+        .log-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            min-width: 120px;
+        }
+        .btn-confirm, .btn-correct {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .btn-confirm {
+            background: #3b82f6;
+            color: white;
+        }
+        .btn-confirm:hover {
+            background: #2563eb;
+        }
+        .btn-correct {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        .btn-correct:hover {
+            border-color: var(--primary);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .status-confirmed {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .status-corrected {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .correction-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .correction-modal.active {
+            display: flex;
+        }
+        .correction-form {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 400px;
+            width: 90%;
+        }
+        .correction-form h3 {
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        .correction-form label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+        .correction-form input, .correction-form textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+        .correction-form .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+        .correction-form .btn-cancel {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+        .correction-form .btn-save {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+        .pagination a {
+            padding: 0.5rem 1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+        .pagination a:hover {
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+        .pagination a.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        @media (max-width: 640px) {
+            .log-entry {
+                grid-template-columns: 80px 1fr;
+            }
+            .log-actions {
+                grid-column: span 2;
+                flex-direction: row;
+                justify-content: flex-end;
+            }
+            .log-image {
+                width: 80px;
+                height: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">
+                <img src="{{ url_for('static', filename='img/logo_dark.png') }}" alt="BirdSense">
+            </a>
+            <div class="nav-links">
+                <a href="/">Dashboard</a>
+                <a href="/log" class="active">Log</a>
+                <a href="/test">Test</a>
+                <a href="/config">Config</a>
+                <a href="/api-docs" target="_blank">API</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 style="margin-bottom: 1.5rem; color: var(--text-primary);">
+            <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></span>
+            Classification Log
+        </h1>
+
+        <!-- Filter Tabs -->
+        <div class="filter-tabs">
+            <a href="{{ url_for('log') }}" class="filter-tab {{ 'active' if not filter else '' }}">
+                All <span class="count">{{ stats.total }}</span>
+            </a>
+            <a href="{{ url_for('log', filter='unknowns') }}" class="filter-tab {{ 'active' if filter == 'unknowns' else '' }}">
+                Unknowns <span class="count">{{ stats.unknowns }}</span>
+            </a>
+            <a href="{{ url_for('log', filter='pending') }}" class="filter-tab {{ 'active' if filter == 'pending' else '' }}">
+                Pending <span class="count">{{ stats.pending }}</span>
+            </a>
+            <a href="{{ url_for('log', filter='corrected') }}" class="filter-tab {{ 'active' if filter == 'corrected' else '' }}">
+                Corrected <span class="count">{{ stats.corrected }}</span>
+            </a>
+            <a href="{{ url_for('log', filter='confirmed') }}" class="filter-tab {{ 'active' if filter == 'confirmed' else '' }}">
+                Confirmed <span class="count">{{ stats.confirmed }}</span>
+            </a>
+        </div>
+
+        <!-- Log Entries -->
+        {% if entries %}
+        <div class="log-entries">
+            {% for entry in entries %}
+            <div class="log-entry {% if entry.species_en and entry.species_en.lower() == 'unknown' %}is-unknown{% endif %} {% if entry.status == 'corrected' %}is-corrected{% elif entry.status == 'confirmed' %}is-confirmed{% endif %}" data-id="{{ entry.id }}">
+                {% if entry.image_path %}
+                <img src="/images/{{ entry.image_path.split('/')[-1] }}"
+                     alt="{{ entry.species_nl or entry.species_en }}"
+                     class="log-image"
+                     onclick="openLightbox('/images/{{ entry.image_path.split('/')[-1] }}')">
+                {% else %}
+                <div class="log-image-placeholder">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                </div>
+                {% endif %}
+
+                <div class="log-info">
+                    <div class="log-species">
+                        {{ entry.species_nl or entry.species_en or 'Unknown' }}
+                        {% if entry.species_en and entry.species_nl != entry.species_en %}
+                        <span style="color: var(--text-tertiary); font-weight: normal; font-size: 0.9rem;">({{ entry.species_en }})</span>
+                        {% endif %}
+                    </div>
+                    {% if entry.status == 'corrected' and entry.species_corrected %}
+                    <div class="log-species-corrected">
+                        Corrected to: {{ entry.species_corrected }}
+                    </div>
+                    {% endif %}
+                    <div class="log-meta">
+                        <span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                            {{ entry.camera }}
+                        </span>
+                        <span class="confidence-badge {% if entry.confidence >= 80 %}confidence-high{% elif entry.confidence >= 60 %}confidence-medium{% else %}confidence-low{% endif %}">
+                            {{ entry.confidence }}%
+                        </span>
+                        <span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            {{ entry.timestamp | timestamp_to_datetime }}
+                        </span>
+                        <span class="status-badge status-{{ entry.status }}">{{ entry.status }}</span>
+                    </div>
+                    {% if entry.top_predictions %}
+                    <div class="top-predictions">
+                        <span style="color: var(--text-tertiary); font-size: 0.8rem;">Alternatives:</span>
+                        {% for pred in entry.top_predictions[1:] %}
+                        <span class="prediction-chip" data-species="{{ pred.species_en or pred.species_nl }}">
+                            {{ pred.species_nl or pred.species_en }} ({{ pred.confidence }}%)
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if entry.notes %}
+                    <div style="font-size: 0.85rem; color: var(--text-tertiary); margin-top: 0.5rem;">
+                        Note: {{ entry.notes }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="log-actions">
+                    {% if entry.status == 'pending' %}
+                    <button class="btn-confirm" onclick="confirmEntry({{ entry.id }})">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Confirm
+                    </button>
+                    <button class="btn-correct" onclick="openCorrectionModal({{ entry.id }}, '{{ entry.species_en or '' }}')">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                        Correct
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if total > limit %}
+        <div class="pagination">
+            {% if offset > 0 %}
+            <a href="{{ url_for('log', filter=filter, offset=offset-limit) }}">Previous</a>
+            {% else %}
+            <a href="#" class="disabled">Previous</a>
+            {% endif %}
+
+            <span style="padding: 0.5rem; color: var(--text-secondary);">
+                {{ offset + 1 }} - {{ [offset + limit, total] | min }} of {{ total }}
+            </span>
+
+            {% if offset + limit < total %}
+            <a href="{{ url_for('log', filter=filter, offset=offset+limit) }}">Next</a>
+            {% else %}
+            <a href="#" class="disabled">Next</a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="card">
+            <div class="empty-state">
+                <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                <h3>No classifications found</h3>
+                <p>{% if filter %}No {{ filter }} classifications yet{% else %}Classified birds will appear here{% endif %}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Correction Modal -->
+    <div class="correction-modal" id="correctionModal">
+        <div class="correction-form">
+            <h3>Correct Classification</h3>
+            <input type="hidden" id="correctionEntryId">
+            <label for="correctedSpecies">Correct Species:</label>
+            <input type="text" id="correctedSpecies" placeholder="Enter correct species name">
+            <label for="correctionNotes">Notes (optional):</label>
+            <textarea id="correctionNotes" rows="2" placeholder="Add any notes..."></textarea>
+            <div class="btn-group">
+                <button class="btn-cancel" onclick="closeCorrectionModal()">Cancel</button>
+                <button class="btn-save" onclick="submitCorrection()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+        <span class="lightbox-close">&times;</span>
+        <img id="lightbox-img" src="" alt="Bird">
+    </div>
+
+    <script>
+        function openLightbox(src) {
+            const lightbox = document.getElementById('lightbox');
+            const img = document.getElementById('lightbox-img');
+            img.src = src;
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            const lightbox = document.getElementById('lightbox');
+            lightbox.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function confirmEntry(entryId) {
+            fetch(`/api/log/${entryId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'confirmed' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => alert('Error: ' + err));
+        }
+
+        function openCorrectionModal(entryId, currentSpecies) {
+            document.getElementById('correctionEntryId').value = entryId;
+            document.getElementById('correctedSpecies').value = currentSpecies;
+            document.getElementById('correctionNotes').value = '';
+            document.getElementById('correctionModal').classList.add('active');
+        }
+
+        function closeCorrectionModal() {
+            document.getElementById('correctionModal').classList.remove('active');
+        }
+
+        function submitCorrection() {
+            const entryId = document.getElementById('correctionEntryId').value;
+            const species = document.getElementById('correctedSpecies').value.trim();
+            const notes = document.getElementById('correctionNotes').value.trim();
+
+            if (!species) {
+                alert('Please enter the correct species name');
+                return;
+            }
+
+            fetch(`/api/log/${entryId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    status: 'corrected',
+                    species_corrected: species,
+                    notes: notes || null
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    closeCorrectionModal();
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => alert('Error: ' + err));
+        }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeLightbox();
+                closeCorrectionModal();
+            }
+        });
+
+        // Click on prediction chip to use as correction
+        document.querySelectorAll('.prediction-chip').forEach(chip => {
+            chip.addEventListener('click', function() {
+                const species = this.dataset.species;
+                const entry = this.closest('.log-entry');
+                const entryId = entry.dataset.id;
+                openCorrectionModal(entryId, species);
+            });
+        });
+    </script>
+</body>
+</html>

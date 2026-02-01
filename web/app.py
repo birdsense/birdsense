@@ -9,7 +9,7 @@ import tempfile
 from datetime import datetime, timedelta
 
 import requests
-from database import BirdConfig, BirdStats, init_db
+from database import BirdConfig, BirdStats, ClassificationLog, init_db
 from flask import Flask, jsonify, redirect, render_template, request
 
 app = Flask(__name__)
@@ -45,6 +45,14 @@ def format_duration(ms):
     if ms < 1000:
         return f"{ms}ms"
     return f"{ms / 1000:.1f}s"
+
+
+@app.template_filter('timestamp_to_datetime')
+def timestamp_to_datetime(timestamp):
+    """Convert Unix timestamp to readable date and time"""
+    if timestamp:
+        return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M')
+    return ''
 
 
 @app.route('/')
@@ -115,6 +123,59 @@ def config():
 def test():
     """Test classifier page"""
     return render_template('test.html')
+
+
+@app.route('/log')
+def log():
+    """Classification log page"""
+    filter_type = request.args.get('filter')
+    offset = int(request.args.get('offset', 0))
+    limit = 20
+
+    # Get filter parameters
+    status = None
+    unknowns_only = False
+
+    if filter_type == 'unknowns':
+        unknowns_only = True
+    elif filter_type in ('pending', 'confirmed', 'corrected'):
+        status = filter_type
+
+    # Get entries and stats
+    entries = ClassificationLog.get_entries(limit=limit, offset=offset, status=status,
+                                            unknowns_only=unknowns_only)
+    total = ClassificationLog.get_count(status=status, unknowns_only=unknowns_only)
+    stats = ClassificationLog.get_stats()
+
+    return render_template('log.html',
+                          entries=entries,
+                          total=total,
+                          stats=stats,
+                          filter=filter_type,
+                          offset=offset,
+                          limit=limit)
+
+
+@app.route('/api/log/<int:entry_id>', methods=['PUT'])
+def api_update_log(entry_id):
+    """Update a classification log entry"""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    status = data.get('status')
+    if status not in ('confirmed', 'corrected'):
+        return jsonify({'error': 'Invalid status'}), 400
+
+    species_corrected = data.get('species_corrected')
+    if status == 'corrected' and not species_corrected:
+        return jsonify({'error': 'species_corrected is required'}), 400
+
+    notes = data.get('notes')
+
+    if ClassificationLog.update_status(entry_id, status, species_corrected, notes):
+        return jsonify({'status': 'ok'})
+    return jsonify({'error': 'Entry not found'}), 404
 
 
 @app.route('/api-docs')
