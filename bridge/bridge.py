@@ -1150,7 +1150,7 @@ def api_start_training():
       503:
         description: Classifier not initialized
     """
-    from train import training_status, run_training
+    from train import run_training, training_status
 
     if training_status.running:
         return jsonify({'error': 'Training already in progress',
