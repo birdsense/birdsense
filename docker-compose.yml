@@ -17,6 +17,7 @@ services:
       - /tmp:/tmp
       - birdsense-data:/data          # Shared SQLite database
       - birdsense-images:/data/images # Images storage
+      - birdsense-models:/data/models # Fine-tuned model weights
       - model-cache:/root/.cache/huggingface  # Persist downloaded models
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
@@ -48,6 +49,7 @@ services:
 volumes:
   birdsense-data:    # Shared data (SQLite database)
   birdsense-images:  # Images storage
+  birdsense-models:  # Fine-tuned model weights
   model-cache:       # HuggingFace model cache
 
 networks:

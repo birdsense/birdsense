@@ -20,11 +20,11 @@ RUN pip install --no-cache-dir \
 
 # Create non-root user for security
 RUN useradd -m -u 1000 birdsense && \
-    mkdir -p /data /data/images && \
+    mkdir -p /data /data/images /data/models && \
     chown -R birdsense:birdsense /app /data
 
 # Copy application code
-COPY --chown=birdsense:birdsense config.py bridge.py classifier.py database.py ./
+COPY --chown=birdsense:birdsense config.py bridge.py classifier.py database.py train.py ./
 COPY --chown=birdsense:birdsense bird_names_nl.json logo.png ./
 
 USER birdsense

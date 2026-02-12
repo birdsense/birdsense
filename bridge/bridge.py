@@ -1040,7 +1040,7 @@ def api_species_list():
         import json
         translation_file = Path(__file__).parent / "bird_names_nl.json"
         if translation_file.exists():
-            with open(translation_file, 'r', encoding='utf-8') as f:
+            with open(translation_file, encoding='utf-8') as f:
                 translations = json.load(f)
 
             for en_name, nl_name in translations.items():
@@ -1114,6 +1114,111 @@ def api_reload_config():
             logger.error(f"Failed to reload config: {e}")
             return jsonify({'status': 'error', 'message': str(e)}), 500
     return jsonify({'status': 'error', 'message': 'Bridge not initialized'}), 503
+
+
+@api.route('/api/train', methods=['POST'])
+def api_start_training():
+    """Start fine-tuning the model
+    ---
+    tags:
+      - Training
+    parameters:
+      - name: body
+        in: body
+        required: false
+        schema:
+          type: object
+          properties:
+            epochs:
+              type: integer
+              default: 10
+            learning_rate:
+              type: number
+              default: 0.0001
+            batch_size:
+              type: integer
+              default: 8
+            freeze_backbone:
+              type: boolean
+              default: true
+              description: "true = head-only (fast), false = full fine-tuning"
+    responses:
+      200:
+        description: Training started
+      409:
+        description: Training already in progress
+      503:
+        description: Classifier not initialized
+    """
+    from train import training_status, run_training
+
+    if training_status.running:
+        return jsonify({'error': 'Training already in progress',
+                        'status': training_status.to_dict()}), 409
+
+    global _bridge_instance
+    if _bridge_instance is None or _bridge_instance.classifier is None:
+        return jsonify({'error': 'Classifier not initialized'}), 503
+
+    data = request.get_json() or {}
+    epochs = data.get('epochs', 10)
+    lr = data.get('learning_rate', 1e-4)
+    batch_size = data.get('batch_size', 8)
+    freeze_backbone = data.get('freeze_backbone', True)
+
+    train_thread = threading.Thread(
+        target=run_training,
+        kwargs={
+            'model_name': _bridge_instance.config.MODEL_NAME,
+            'epochs': epochs,
+            'learning_rate': lr,
+            'batch_size': batch_size,
+            'freeze_backbone': freeze_backbone,
+        },
+        daemon=True,
+    )
+    train_thread.start()
+
+    return jsonify({
+        'status': 'ok',
+        'message': 'Training started in background',
+    })
+
+
+@api.route('/api/train/status', methods=['GET'])
+def api_training_status():
+    """Get current training status
+    ---
+    tags:
+      - Training
+    responses:
+      200:
+        description: Training status
+    """
+    from train import training_status
+    return jsonify(training_status.to_dict())
+
+
+@api.route('/api/train/reload', methods=['POST'])
+def api_reload_finetuned():
+    """Reload classifier with fine-tuned weights
+    ---
+    tags:
+      - Training
+    responses:
+      200:
+        description: Model reloaded
+      500:
+        description: Reload failed
+    """
+    global _bridge_instance
+    if _bridge_instance is None or _bridge_instance.classifier is None:
+        return jsonify({'error': 'Classifier not initialized'}), 503
+
+    success = _bridge_instance.classifier.reload_model()
+    if success:
+        return jsonify({'status': 'ok', 'message': 'Model reloaded with fine-tuned weights'})
+    return jsonify({'error': 'Failed to reload model'}), 500
 
 
 def run_api_server():

@@ -191,6 +191,50 @@ def api_species():
         return jsonify({'species': [], 'count': 0})
 
 
+@app.route('/training')
+def training():
+    """Training page"""
+    stats = ClassificationLog.get_stats()
+    return render_template('training.html', log_stats=stats)
+
+
+@app.route('/api/train', methods=['POST'])
+def api_train():
+    """Proxy training request to bridge"""
+    try:
+        bridge_url = os.environ.get('BRIDGE_URL', 'http://host.docker.internal:5001')
+        response = requests.post(
+            f"{bridge_url}/api/train",
+            json=request.get_json() or {},
+            timeout=10,
+        )
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'error': f'Bridge unavailable: {e}'}), 503
+
+
+@app.route('/api/train/status')
+def api_train_status():
+    """Proxy training status from bridge"""
+    try:
+        bridge_url = os.environ.get('BRIDGE_URL', 'http://host.docker.internal:5001')
+        response = requests.get(f"{bridge_url}/api/train/status", timeout=5)
+        return jsonify(response.json())
+    except Exception:
+        return jsonify({'running': False, 'error': 'Bridge unavailable'})
+
+
+@app.route('/api/train/reload', methods=['POST'])
+def api_train_reload():
+    """Proxy model reload request to bridge"""
+    try:
+        bridge_url = os.environ.get('BRIDGE_URL', 'http://host.docker.internal:5001')
+        response = requests.post(f"{bridge_url}/api/train/reload", timeout=30)
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'error': f'Bridge unavailable: {e}'}), 503
+
+
 @app.route('/api-docs')
 def api_docs():
     """Redirect to Swagger API documentation on bridge"""

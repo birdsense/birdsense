@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training - BirdSense</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            text-align: center;
+        }
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .stat-card .stat-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        @media (max-width: 600px) {
+            .form-row { grid-template-columns: 1fr; }
+        }
+        .toggle-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .toggle-option {
+            padding: 0.5rem 1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .toggle-option.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        .status-panel {
+            background: rgba(0,0,0,0.2);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin-top: 1rem;
+            display: none;
+        }
+        .status-panel.visible { display: block; }
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .status-badge.running {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+        .status-badge.done {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+        .status-badge.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .status-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.75rem;
+            font-size: 0.85rem;
+        }
+        .status-detail label {
+            color: var(--text-muted);
+            display: block;
+            margin-bottom: 0.2rem;
+        }
+        .status-detail span {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+        }
+        .history-table th, .history-table td {
+            padding: 0.5rem 0.75rem;
+            text-align: right;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .history-table th {
+            color: var(--text-muted);
+            font-weight: 500;
+            text-align: right;
+        }
+        .history-table th:first-child, .history-table td:first-child {
+            text-align: left;
+        }
+        .alert-warning {
+            background: rgba(234, 179, 8, 0.15);
+            border: 1px solid rgba(234, 179, 8, 0.3);
+            color: #fbbf24;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .info-card {
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        .info-card h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        .info-card ol {
+            padding-left: 1.25rem;
+            margin: 0.5rem 0;
+        }
+        .info-card li {
+            margin-bottom: 0.3rem;
+        }
+        .info-card code {
+            background: rgba(0,0,0,0.2);
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">
+                <img src="{{ url_for('static', filename='img/logo_dark.png') }}" alt="BirdSense">
+            </a>
+            <div class="nav-links">
+                <a href="/">Dashboard</a>
+                <a href="/log">Log</a>
+                <a href="/test">Test</a>
+                <a href="/training" class="active">Training</a>
+                <a href="/config">Config</a>
+                <a href="/api-docs" target="_blank">API</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h2>Model Training</h2>
+            <p>Fine-tune the classification model using confirmed and corrected data from the log</p>
+        </div>
+
+        <!-- How it works -->
+        <div class="info-card">
+            <h4>How it works</h4>
+            <ol>
+                <li><strong>Confirm or correct</strong> classifications in the <a href="/log" style="color: #60a5fa;">Log</a> to build training data</li>
+                <li><strong>Start training</strong> to fine-tune the pretrained ConvNeXt V2 model on your labeled images</li>
+                <li>The model learns from your corrections &mdash; images are augmented (flipped, cropped, color-shifted) to prevent overfitting</li>
+                <li>After training completes, click <strong>Reload Model</strong> to swap the running classifier to the fine-tuned version</li>
+            </ol>
+            <p style="margin-top: 0.5rem;">
+                <strong>Head-only</strong> trains just the final classification layer (fast, needs less data).
+                <strong>Full</strong> fine-tunes all layers (slower, better with more data).
+                The best model (lowest validation loss) is automatically saved.
+            </p>
+        </div>
+
+        <!-- Training data stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ log_stats.confirmed }}</div>
+                <div class="stat-label">Confirmed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ log_stats.corrected }}</div>
+                <div class="stat-label">Corrected</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ log_stats.confirmed + log_stats.corrected }}</div>
+                <div class="stat-label">Training Samples</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ log_stats.pending }}</div>
+                <div class="stat-label">Awaiting Review</div>
+            </div>
+        </div>
+
+        {% if log_stats.confirmed + log_stats.corrected < 5 %}
+        <div class="alert-warning">
+            Not enough training data. Confirm or correct at least 5 classifications in the
+            <a href="/log" style="color: #fbbf24; text-decoration: underline;">log</a>
+            before you can start training.
+        </div>
+        {% endif %}
+
+        <!-- Training configuration -->
+        <div class="card">
+            <div class="form-section">
+                <h3>Training Configuration</h3>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="epochs">Epochs</label>
+                        <input type="number" id="epochs" value="10" min="1" max="100">
+                        <small>Number of training rounds over the full dataset</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="batchSize">Batch Size</label>
+                        <input type="number" id="batchSize" value="8" min="1" max="64">
+                        <small>Images per step (lower = less memory usage)</small>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="learningRate">Learning Rate</label>
+                        <input type="number" id="learningRate" value="0.0001" step="0.00001" min="0.000001" max="0.01">
+                        <small>Step size for weight updates (default 0.0001)</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Fine-tuning Mode</label>
+                        <div class="toggle-group">
+                            <div class="toggle-option active" data-value="true" onclick="setFreezeMode(this)">Head-only (fast)</div>
+                            <div class="toggle-option" data-value="false" onclick="setFreezeMode(this)">Full (better)</div>
+                        </div>
+                        <small>Head-only: classifier layer only. Full: all model layers.</small>
+                    </div>
+                </div>
+
+                <div class="form-actions" style="margin-top: 1rem;">
+                    <button id="startBtn" class="btn btn-primary" onclick="startTraining()"
+                        {% if log_stats.confirmed + log_stats.corrected < 5 %}disabled{% endif %}>
+                        Start Training
+                    </button>
+                    <button id="reloadBtn" class="btn btn-secondary" onclick="reloadModel()" style="display:none;">
+                        Reload Model
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status panel -->
+            <div id="statusPanel" class="status-panel">
+                <div class="status-header">
+                    <strong>Training Status</strong>
+                    <span id="statusBadge" class="status-badge running">Running...</span>
+                </div>
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+                </div>
+                <p id="statusMessage" style="color: var(--text-muted); margin-bottom: 1rem;"></p>
+                <div class="status-details">
+                    <div class="status-detail">
+                        <label>Epoch</label>
+                        <span id="statusEpoch">-</span>
+                    </div>
+                    <div class="status-detail">
+                        <label>Loss</label>
+                        <span id="statusLoss">-</span>
+                    </div>
+                    <div class="status-detail">
+                        <label>Best Loss</label>
+                        <span id="statusBestLoss">-</span>
+                    </div>
+                    <div class="status-detail">
+                        <label>Elapsed</label>
+                        <span id="statusTime">-</span>
+                    </div>
+                </div>
+
+                <!-- History table -->
+                <div id="historySection" style="display:none;">
+                    <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--text-secondary);">Epoch Results</h4>
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Epoch</th>
+                                <th>Train Loss</th>
+                                <th>Train Acc</th>
+                                <th>Val Loss</th>
+                                <th>Val Acc</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let freezeBackbone = true;
+        let pollInterval = null;
+
+        function setFreezeMode(el) {
+            document.querySelectorAll('.toggle-option').forEach(o => o.classList.remove('active'));
+            el.classList.add('active');
+            freezeBackbone = el.dataset.value === 'true';
+        }
+
+        async function startTraining() {
+            const btn = document.getElementById('startBtn');
+            btn.disabled = true;
+            btn.textContent = 'Starting...';
+
+            const body = {
+                epochs: parseInt(document.getElementById('epochs').value),
+                learning_rate: parseFloat(document.getElementById('learningRate').value),
+                batch_size: parseInt(document.getElementById('batchSize').value),
+                freeze_backbone: freezeBackbone,
+            };
+
+            try {
+                const res = await fetch('/api/train', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body),
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    btn.textContent = 'Training in progress...';
+                    document.getElementById('statusPanel').classList.add('visible');
+                    document.getElementById('reloadBtn').style.display = 'none';
+                    startPolling();
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = 'Start Training';
+                    alert(data.error || 'Failed to start training');
+                }
+            } catch (e) {
+                btn.disabled = false;
+                btn.textContent = 'Start Training';
+                alert('Cannot reach bridge service: ' + e.message);
+            }
+        }
+
+        function startPolling() {
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(pollStatus, 2000);
+            pollStatus();
+        }
+
+        async function pollStatus() {
+            try {
+                const res = await fetch('/api/train/status');
+                const s = await res.json();
+                updateStatus(s);
+
+                if (!s.running && pollInterval) {
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                }
+            } catch (e) {
+                // Bridge unavailable, keep polling
+            }
+        }
+
+        function updateStatus(s) {
+            const panel = document.getElementById('statusPanel');
+            panel.classList.add('visible');
+
+            const badge = document.getElementById('statusBadge');
+            const btn = document.getElementById('startBtn');
+
+            if (s.running) {
+                badge.className = 'status-badge running';
+                badge.textContent = 'Running...';
+                btn.disabled = true;
+                btn.textContent = 'Training in progress...';
+            } else if (s.error) {
+                badge.className = 'status-badge error';
+                badge.textContent = 'Error';
+                btn.disabled = false;
+                btn.textContent = 'Start Training';
+            } else if (s.epoch > 0) {
+                badge.className = 'status-badge done';
+                badge.textContent = 'Complete';
+                btn.disabled = false;
+                btn.textContent = 'Start Training';
+                document.getElementById('reloadBtn').style.display = 'inline-block';
+            }
+
+            // Progress
+            const pct = s.total_epochs > 0 ? (s.epoch / s.total_epochs) * 100 : 0;
+            document.getElementById('progressFill').style.width = pct + '%';
+
+            // Details
+            document.getElementById('statusMessage').textContent = s.message || '';
+            document.getElementById('statusEpoch').textContent =
+                s.total_epochs > 0 ? s.epoch + ' / ' + s.total_epochs : '-';
+            document.getElementById('statusLoss').textContent =
+                s.loss > 0 ? s.loss.toFixed(5) : '-';
+            document.getElementById('statusBestLoss').textContent =
+                s.best_loss !== null ? s.best_loss.toFixed(5) : '-';
+            document.getElementById('statusTime').textContent =
+                s.elapsed_seconds > 0 ? formatTime(s.elapsed_seconds) : '-';
+
+            // History
+            if (s.history && s.history.length > 0) {
+                const section = document.getElementById('historySection');
+                section.style.display = 'block';
+                const tbody = document.getElementById('historyBody');
+                tbody.innerHTML = '';
+                s.history.forEach(h => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${h.epoch}</td>
+                        <td>${h.train_loss.toFixed(5)}</td>
+                        <td>${(h.train_acc * 100).toFixed(1)}%</td>
+                        <td>${h.val_loss.toFixed(5)}</td>
+                        <td>${(h.val_acc * 100).toFixed(1)}%</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return m > 0 ? m + 'm ' + s + 's' : s + 's';
+        }
+
+        async function reloadModel() {
+            const btn = document.getElementById('reloadBtn');
+            btn.disabled = true;
+            btn.textContent = 'Reloading...';
+
+            try {
+                const res = await fetch('/api/train/reload', {method: 'POST'});
+                const data = await res.json();
+
+                if (res.ok) {
+                    btn.textContent = 'Model reloaded!';
+                    btn.style.background = 'var(--success, #22c55e)';
+                    setTimeout(() => {
+                        btn.textContent = 'Reload Model';
+                        btn.style.background = '';
+                        btn.disabled = false;
+                    }, 3000);
+                } else {
+                    alert(data.error || 'Reload failed');
+                    btn.disabled = false;
+                    btn.textContent = 'Reload Model';
+                }
+            } catch (e) {
+                alert('Cannot reach bridge service: ' + e.message);
+                btn.disabled = false;
+                btn.textContent = 'Reload Model';
+            }
+        }
+
+        // Check status on page load (in case training is already running)
+        pollStatus();
+    </script>
+</body>
+</html>

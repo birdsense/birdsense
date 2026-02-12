@@ -16,6 +16,9 @@ from PIL import Image
 
 logger = logging.getLogger(__name__)
 
+FINETUNED_WEIGHTS = "/data/models/finetuned_latest.pt"
+FINETUNED_META = "/data/models/finetuned_meta.json"
+
 # Model configurations
 BIRDER_MODELS = {
     "birder-project/convnext_v2_tiny_eu-common": {
@@ -71,7 +74,7 @@ class BirdClassifier:
         logger.info(f"Model loaded with {len(self.id2label)} species")
 
     def _load_birder_model(self, model_name: str) -> None:
-        """Load a birder-project model."""
+        """Load a birder-project model, optionally with fine-tuned weights."""
         try:
             import birder
             from birder.inference.classification import infer_image
@@ -79,6 +82,11 @@ class BirdClassifier:
             birder_model_id = model_name.replace("birder-project/", "")
 
             self.model, self.model_info = birder.load_pretrained_model(birder_model_id, inference=True)
+
+            # Load fine-tuned weights if available
+            if Path(FINETUNED_WEIGHTS).exists():
+                self._load_finetuned_weights()
+
             self.model.to(self.device)
 
             size = birder.get_size_from_signature(self.model_info.signature)
@@ -91,6 +99,40 @@ class BirdClassifier:
 
         except ImportError as err:
             raise ImportError("birder library not installed. Run: pip install birder") from err
+
+    def _load_finetuned_weights(self) -> None:
+        """Load fine-tuned weights over the base model."""
+        try:
+            state_dict = torch.load(FINETUNED_WEIGHTS, map_location=self.device,
+                                    weights_only=True)
+            self.model.load_state_dict(state_dict)
+            self.model.eval()
+
+            if Path(FINETUNED_META).exists():
+                with open(FINETUNED_META) as f:
+                    meta = json.load(f)
+                logger.info(
+                    f"Loaded fine-tuned weights (trained on {meta.get('num_samples', '?')} "
+                    f"samples, val_loss={meta.get('best_val_loss', '?')}, "
+                    f"saved {meta.get('saved_at', '?')})"
+                )
+            else:
+                logger.info("Loaded fine-tuned weights")
+        except Exception as e:
+            logger.warning(f"Failed to load fine-tuned weights, using base model: {e}")
+
+    def reload_model(self) -> bool:
+        """Reload the model, picking up fine-tuned weights if available."""
+        try:
+            if self.is_birder_model:
+                self._load_birder_model(self.model_name)
+            else:
+                self._load_transformers_model(self.model_name)
+            logger.info("Model reloaded successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to reload model: {e}")
+            return False
 
     def _load_transformers_model(self, model_name: str) -> None:
         """Load a HuggingFace transformers model."""
