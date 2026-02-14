@@ -735,6 +735,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'ok') {
+                    sessionStorage.setItem('trainTriggered', Date.now());
                     location.reload();
                 } else {
                     alert('Error: ' + (data.error || 'Unknown error'));
@@ -784,6 +785,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'ok') {
+                    sessionStorage.setItem('trainTriggered', Date.now());
                     closeCorrectionModal();
                     location.reload();
                 } else {
@@ -815,7 +817,7 @@
                 document.getElementById('correctedSpecies').value = this.textContent.split('(')[0].trim();
             });
         });
-        // Auto-training status polling
+        // Auto-training status polling — only after user confirm/correct
         let trainPollInterval = null;
 
         function pollTrainStatus() {
@@ -839,18 +841,23 @@
                         spinner.style.display = 'none';
                         msg.textContent = s.message || 'Training complete, model reloaded.';
                         clearInterval(trainPollInterval);
+                        sessionStorage.removeItem('trainTriggered');
                         setTimeout(() => { banner.style.display = 'none'; }, 8000);
                     } else {
                         banner.style.display = 'none';
-                        if (!s.running) clearInterval(trainPollInterval);
+                        clearInterval(trainPollInterval);
+                        sessionStorage.removeItem('trainTriggered');
                     }
                 })
                 .catch(() => {});
         }
 
-        // Start polling on page load to catch any running training
-        pollTrainStatus();
-        trainPollInterval = setInterval(pollTrainStatus, 3000);
+        // Only poll if we triggered training from this session
+        const triggered = sessionStorage.getItem('trainTriggered');
+        if (triggered && (Date.now() - parseInt(triggered)) < 600000) {
+            pollTrainStatus();
+            trainPollInterval = setInterval(pollTrainStatus, 3000);
+        }
     </script>
 </body>
 </html>
