@@ -259,19 +259,21 @@ def run_training(
     batch_size: int = 8,
     freeze_backbone: bool = True,
     val_split: float = 0.2,
+    species: str = "",
 ):
     """Main training function. Runs in a background thread."""
     global training_status
+    species_label = f" for '{species}'" if species else ""
     training_status = TrainingStatus(
         running=True,
         total_epochs=epochs,
         started_at=time.time(),
-        message="Loading training data...",
+        message=f"Loading training data{species_label}...",
     )
 
     try:
         _run_training_inner(model_name, epochs, learning_rate, batch_size,
-                            freeze_backbone, val_split)
+                            freeze_backbone, val_split, species)
     except Exception as e:
         logger.error(f"Training failed: {e}", exc_info=True)
         training_status.error = str(e)
@@ -281,7 +283,7 @@ def run_training(
         training_status.finished_at = time.time()
 
 
-def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val_split):
+def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val_split, species):
     global training_status
     from database import ClassificationLog
 
@@ -290,10 +292,21 @@ def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val
     corrected = ClassificationLog.get_entries(limit=100000, status="corrected")
     all_entries = confirmed + corrected
 
-    if len(all_entries) < 5:
+    # Filter to a single species if specified
+    if species:
+        species_lower = species.lower()
+        all_entries = [
+            e for e in all_entries
+            if (e.get("species_corrected") or e.get("species_en", "")).lower() == species_lower
+        ]
+        logger.info(f"Filtered to species '{species}': {len(all_entries)} entries")
+
+    min_samples = 2 if species else 5
+    if len(all_entries) < min_samples:
         raise ValueError(
             f"Not enough training data: {len(all_entries)} entries "
-            f"(need at least 5 confirmed/corrected classifications)"
+            f"(need at least {min_samples} confirmed/corrected classifications"
+            f"{f' for {species}' if species else ''})"
         )
 
     training_status.samples = len(all_entries)
@@ -449,6 +462,22 @@ def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val
 
     training_status.message = (
         f"Training complete! Best val_loss={best_val_loss:.4f}. "
-        f"Click Reload Model to use the fine-tuned version."
+        f"Reloading model..."
     )
     logger.info(f"Training complete. Best val_loss={best_val_loss:.4f}")
+
+    # Auto-reload the model after training
+    try:
+        from classifier import BirdClassifier
+        BirdClassifier.reload_model()
+        training_status.message = (
+            f"Training complete! Best val_loss={best_val_loss:.4f}. "
+            f"Model reloaded successfully."
+        )
+        logger.info("Model auto-reloaded after training")
+    except Exception as e:
+        logger.warning(f"Auto-reload failed: {e}")
+        training_status.message = (
+            f"Training complete! Best val_loss={best_val_loss:.4f}. "
+            f"Auto-reload failed, click Reload Model manually."
+        )

@@ -1004,8 +1004,45 @@ def api_update_classification_log(entry_id):
     notes = data.get('notes')
 
     if ClassificationLog.update_status(entry_id, status, species_corrected, notes):
-        return jsonify({'status': 'ok', 'message': 'Entry updated'})
+        # Auto-train after confirm/correct
+        _trigger_auto_train()
+        return jsonify({'status': 'ok', 'message': 'Entry updated', 'training': 'started'})
     return jsonify({'error': 'Entry not found'}), 404
+
+
+def _trigger_auto_train():
+    """Start background training automatically after a confirm/correct."""
+    from train import run_training, training_status
+
+    if training_status.running:
+        logger.debug("Auto-train skipped: training already in progress")
+        return
+
+    global _bridge_instance
+    if _bridge_instance is None or _bridge_instance.classifier is None:
+        logger.debug("Auto-train skipped: classifier not initialized")
+        return
+
+    # Check if there's enough training data
+    stats = ClassificationLog.get_stats()
+    total_labeled = stats.get('confirmed', 0) + stats.get('corrected', 0)
+    if total_labeled < 5:
+        logger.debug(f"Auto-train skipped: only {total_labeled} labeled samples (need 5)")
+        return
+
+    train_thread = threading.Thread(
+        target=run_training,
+        kwargs={
+            'model_name': _bridge_instance.config.MODEL_NAME,
+            'epochs': 10,
+            'learning_rate': 1e-4,
+            'batch_size': 8,
+            'freeze_backbone': True,
+        },
+        daemon=True,
+    )
+    train_thread.start()
+    logger.info(f"Auto-train started with {total_labeled} labeled samples")
 
 
 @api.route('/api/species', methods=['GET'])
