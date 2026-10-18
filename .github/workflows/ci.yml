@@ -20,11 +20,15 @@ jobs:
 
       - name: Install linters
         run: |
-          pip install pylint ruff
+          pip install -r requirements-dev.txt
 
-      - name: Install bridge dependencies (for type checking)
+      # Installs the pinned web deps and the bridge deps without the heavy ML
+      # stack (torch etc. is validated by the Docker Build job below).
+      - name: Install app dependencies (for linting)
         run: |
-          pip install flask flasgger paho-mqtt requests
+          pip install -r web/requirements.txt
+          grep -viE '^(torch|torchvision|transformers|birder)\b' bridge/requirements.txt > /tmp/bridge-light.txt
+          pip install -r /tmp/bridge-light.txt
 
       - name: Run Ruff (fast linter)
         run: |

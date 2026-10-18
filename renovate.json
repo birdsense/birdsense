@@ -1,0 +1,206 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Automated dependency updates for BirdSense. See README > Dependency updates.",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":semanticCommitTypeAll(chore)"
+  ],
+  "timezone": "Europe/Amsterdam",
+  "schedule": [
+    "before 6am on monday"
+  ],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "labels": [
+    "dependencies"
+  ],
+  "rangeStrategy": "pin",
+  "automerge": false,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": [
+      "dependencies",
+      "security"
+    ],
+    "schedule": [
+      "at any time"
+    ]
+  },
+  "enabledManagers": [
+    "pip_requirements",
+    "dockerfile",
+    "docker-compose",
+    "github-actions",
+    "pre-commit"
+  ],
+  "pre-commit": {
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "description": "Label PRs by ecosystem",
+      "matchManagers": [
+        "pip_requirements"
+      ],
+      "addLabels": [
+        "python"
+      ]
+    },
+    {
+      "matchManagers": [
+        "dockerfile",
+        "docker-compose"
+      ],
+      "addLabels": [
+        "docker"
+      ]
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "addLabels": [
+        "github-actions"
+      ]
+    },
+    {
+      "matchManagers": [
+        "pre-commit"
+      ],
+      "addLabels": [
+        "pre-commit"
+      ]
+    },
+    {
+      "description": "Python app deps (bridge + web): one weekly PR for all minor/patch bumps",
+      "matchManagers": [
+        "pip_requirements"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin"
+      ],
+      "groupName": "python dependencies (non-major)"
+    },
+    {
+      "description": "ML stack: own group, never auto-merged, always reviewed. Bumps can change model behaviour/accuracy or break the CPU torch wheel index.",
+      "matchManagers": [
+        "pip_requirements"
+      ],
+      "matchPackageNames": [
+        "torch",
+        "torchvision",
+        "torchaudio",
+        "transformers",
+        "birder",
+        "timm",
+        "tensorflow",
+        "tflite-runtime",
+        "ai-edge-litert",
+        "birdnet",
+        "birdnetlib",
+        "numpy",
+        "onnxruntime",
+        "safetensors",
+        "huggingface-hub"
+      ],
+      "groupName": "ML stack",
+      "addLabels": [
+        "ml"
+      ],
+      "automerge": false,
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "ML stack majors need explicit approval on the Dependency Dashboard",
+      "matchManagers": [
+        "pip_requirements"
+      ],
+      "matchPackageNames": [
+        "torch",
+        "torchvision",
+        "torchaudio",
+        "transformers",
+        "birder",
+        "timm",
+        "tensorflow",
+        "tflite-runtime",
+        "ai-edge-litert",
+        "birdnet",
+        "birdnetlib",
+        "numpy",
+        "onnxruntime",
+        "safetensors",
+        "huggingface-hub"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Keep both Dockerfiles on the same Python base; Python minor/major bumps (3.11 -> 3.12) need dashboard approval because of the ML wheels",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchDepNames": [
+        "python"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "major"
+      ],
+      "groupName": "python base image",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "GitHub Actions: one weekly PR for non-major bumps",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest"
+      ],
+      "groupName": "github-actions (non-major)"
+    },
+    {
+      "description": "Keep ruff in CI (requirements-dev.txt) and pre-commit in lockstep",
+      "matchPackageNames": [
+        "ruff",
+        "astral-sh/ruff-pre-commit"
+      ],
+      "groupName": "ruff"
+    },
+    {
+      "description": "Other pre-commit hooks: one weekly PR",
+      "matchManagers": [
+        "pre-commit"
+      ],
+      "matchPackageNames": [
+        "!astral-sh/ruff-pre-commit"
+      ],
+      "groupName": "pre-commit hooks"
+    },
+    {
+      "description": "OPT-IN auto-merge for dev tooling patch/minor updates (linters, pre-commit hooks, GitHub Actions). Set automerge to true to enable; requires 'Allow auto-merge' and branch protection with required CI checks.",
+      "matchFileNames": [
+        "requirements-dev.txt",
+        ".pre-commit-config.yaml",
+        ".github/workflows/**"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest"
+      ],
+      "automerge": false,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    }
+  ]
+}
