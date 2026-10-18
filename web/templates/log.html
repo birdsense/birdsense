@@ -113,7 +113,7 @@
             gap: 0.25rem;
         }
 
-        .top-predictions {
+        .log-alternatives {
             display: flex;
             gap: 0.5rem;
             flex-wrap: wrap;
@@ -621,7 +621,7 @@
                         <span class="status-badge status-{{ entry.status }}">{{ entry.status }}</span>
                     </div>
                     {% if entry.top_predictions %}
-                    <div class="top-predictions">
+                    <div class="log-alternatives">
                         <span style="color: var(--text-tertiary); font-size: 0.8rem;">Alternatives:</span>
                         {% for pred in entry.top_predictions[1:] %}
                         <span class="prediction-chip" data-species="{{ pred.species_en or pred.species_nl }}">
