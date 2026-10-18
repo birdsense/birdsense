@@ -29,6 +29,10 @@ COPY --chown=birdsense:birdsense bird_names_nl.json logo.png ./
 
 USER birdsense
 
+# Download birder pretrained weights into the persistent models volume
+# (default would be ./models inside the container, re-downloaded on every rebuild)
+ENV MODELS_DIR=/data/models/birder
+
 # Health check using API endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
     CMD curl -f http://localhost:5001/api/health || exit 1

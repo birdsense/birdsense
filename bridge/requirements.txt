@@ -5,10 +5,11 @@ Flask==3.0.0
 flasgger==0.9.7.1
 
 # ML dependencies for bird classification
-torch>=2.0.0
+torch>=2.10.0
 torchvision>=0.15.0
 transformers>=4.30.0
 Pillow>=10.0.0
 
 # European bird classifier (birder-project)
-birder>=0.1.0
+# >=0.8.2 is required for the NaFlex model; tested with 0.8.3 (needs torch>=2.10)
+birder>=0.8.2,<0.9

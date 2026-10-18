@@ -176,7 +176,7 @@ class BirdIdentificationBridge:
 
     def analyze_bird(self, image_path: str) -> dict[str, Any] | None:
         """
-        Classify bird image using EfficientNet model
+        Classify bird image using the configured classifier model
 
         Returns:
             Dict with 'species', 'species_en', 'species_nl', 'confidence' or None on error
@@ -1038,6 +1038,7 @@ def _trigger_auto_train():
             'learning_rate': 1e-4,
             'batch_size': 8,
             'freeze_backbone': True,
+            'reload_callback': _bridge_instance.classifier.reload_model,
         },
         daemon=True,
     )
@@ -1211,6 +1212,7 @@ def api_start_training():
             'learning_rate': lr,
             'batch_size': batch_size,
             'freeze_backbone': freeze_backbone,
+            'reload_callback': _bridge_instance.classifier.reload_model,
         },
         daemon=True,
     )

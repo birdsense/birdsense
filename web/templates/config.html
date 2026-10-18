@@ -59,15 +59,28 @@
 
                     <div class="form-group">
                         <label for="model_name">AI Model</label>
+                        {% set current_model = config.get('MODEL_NAME') or 'birder-project/vit_parallel_s16_18x2_ls_avg_data2vec-intermediate-eu-common' %}
                         <select id="model_name" name="model_name">
-                            <option value="birder-project/convnext_v2_tiny_eu-common" {{ 'selected' if 'eu-common' in config.get('MODEL_NAME', '') or not config.get('MODEL_NAME') else '' }}>
-                                EU-Common (Recommended - 707 European species, Collins Bird Guide)
+                            <option value="birder-project/vit_parallel_s16_18x2_ls_avg_data2vec-intermediate-eu-common" {{ 'selected' if current_model == 'birder-project/vit_parallel_s16_18x2_ls_avg_data2vec-intermediate-eu-common' else '' }}>
+                                ViT Parallel EU-Common (Recommended - 707 European species, 98.0% accuracy)
                             </option>
-                            <option value="dennisjooo/Birds-Classifier-EfficientNetB2" {{ 'selected' if 'EfficientNetB2' in config.get('MODEL_NAME', '') else '' }}>
-                                EfficientNetB2 (525 species, primarily North America)
+                            <option value="birder-project/hiera_abswin_base_mim-intermediate-eu-common" {{ 'selected' if current_model == 'birder-project/hiera_abswin_base_mim-intermediate-eu-common' else '' }}>
+                                Hiera Base EU-Common (707 species, 97.8% accuracy, lighter)
+                            </option>
+                            <option value="birder-project/convnext_v2_tiny_intermediate-eu-common" {{ 'selected' if current_model == 'birder-project/convnext_v2_tiny_intermediate-eu-common' else '' }}>
+                                ConvNeXt V2 Tiny Intermediate EU-Common (707 species, 97.4% accuracy, fastest)
+                            </option>
+                            <option value="birder-project/convnext_v2_tiny_eu-common" {{ 'selected' if current_model == 'birder-project/convnext_v2_tiny_eu-common' else '' }}>
+                                ConvNeXt V2 Tiny EU-Common (previous default, 707 species, 97.2% accuracy)
+                            </option>
+                            <option value="birder-project/naflex_vit_reg4_so150m_p14_ls_dino-v2-bio-intermediate-eu-common" {{ 'selected' if current_model == 'birder-project/naflex_vit_reg4_so150m_p14_ls_dino-v2-bio-intermediate-eu-common' else '' }}>
+                                NaFlex ViT SO150M EU-Common (707 species, 98.5% accuracy, ~5x slower on CPU)
+                            </option>
+                            <option value="dennisjooo/Birds-Classifier-EfficientNetB2" {{ 'selected' if current_model == 'dennisjooo/Birds-Classifier-EfficientNetB2' else '' }}>
+                                EfficientNetB2 (525 species, primarily North America, no fine-tuning)
                             </option>
                         </select>
-                        <small>EU-Common is optimized for European birds like Robin, Great Tit, etc.</small>
+                        <small>All EU-Common models cover the same 707 European species (Collins Bird Guide); larger models are more accurate but slower on CPU. Fine-tuned weights only apply to the model they were trained on, so retrain after switching.</small>
                     </div>
 
                     <div class="form-group">

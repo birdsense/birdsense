@@ -2,18 +2,20 @@
 """
 BirdSense - Model Fine-Tuning Pipeline
 
-Fine-tunes the ConvNeXt V2 bird classification model using confirmed and
-corrected entries from the classification log.
+Fine-tunes the configured birder EU-common bird classification model using
+confirmed and corrected entries from the classification log.
 """
 
 import json
 import logging
 import os
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import torch
+from classifier import DEFAULT_MODEL
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
@@ -253,15 +255,20 @@ def _save_finetuned(model, base_model_name, epochs, freeze_backbone,
 
 
 def run_training(
-    model_name: str = "birder-project/convnext_v2_tiny_eu-common",
+    model_name: str = DEFAULT_MODEL,
     epochs: int = 10,
     learning_rate: float = 1e-4,
     batch_size: int = 8,
     freeze_backbone: bool = True,
     val_split: float = 0.2,
     species: str = "",
+    reload_callback: Callable[[], bool] | None = None,
 ):
-    """Main training function. Runs in a background thread."""
+    """Main training function. Runs in a background thread.
+
+    reload_callback is called after training (e.g. the running classifier's
+    reload_model) so the fine-tuned weights become active immediately.
+    """
     global training_status
     species_label = f" for '{species}'" if species else ""
     training_status = TrainingStatus(
@@ -273,7 +280,7 @@ def run_training(
 
     try:
         _run_training_inner(model_name, epochs, learning_rate, batch_size,
-                            freeze_backbone, val_split, species)
+                            freeze_backbone, val_split, species, reload_callback)
     except Exception as e:
         logger.error(f"Training failed: {e}", exc_info=True)
         training_status.error = str(e)
@@ -283,7 +290,8 @@ def run_training(
         training_status.finished_at = time.time()
 
 
-def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val_split, species):
+def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val_split, species,
+                        reload_callback=None):
     global training_status
     from database import ClassificationLog
 
@@ -313,6 +321,9 @@ def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val
     training_status.message = f"Found {len(all_entries)} training samples. Loading model..."
 
     # Step 2: Load the base model for training
+    if not model_name.startswith("birder-project/"):
+        raise ValueError(f"Fine-tuning is only supported for birder-project models, not '{model_name}'")
+
     import birder
 
     birder_model_id = model_name.replace("birder-project/", "")
@@ -467,9 +478,15 @@ def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val
     logger.info(f"Training complete. Best val_loss={best_val_loss:.4f}")
 
     # Auto-reload the model after training
+    if reload_callback is None:
+        training_status.message = (
+            f"Training complete! Best val_loss={best_val_loss:.4f}. "
+            f"Click Reload Model to activate."
+        )
+        return
     try:
-        from classifier import BirdClassifier
-        BirdClassifier.reload_model()
+        if not reload_callback():
+            raise RuntimeError("reload_model returned False")
         training_status.message = (
             f"Training complete! Best val_loss={best_val_loss:.4f}. "
             f"Model reloaded successfully."

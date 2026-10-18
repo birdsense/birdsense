@@ -18,7 +18,7 @@
 ## Features
 
 - **REST API** - Upload images, get species with confidence scores
-- **707 European Species** - ConvNeXt V2 model (~90% accuracy)
+- **707 European Species** - Birder ViT Parallel EU-Common model (98% top-1 on the eu-common validation set), with lighter/faster models selectable
 - **MQTT Events** - Publish detections with image URLs to your home automation
 - **Image Storage** - Saved images served via API with listing endpoint
 - **Web Dashboard** - Statistics, charts, and classifier testing
