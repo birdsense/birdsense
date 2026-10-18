@@ -143,10 +143,7 @@ class BirdSenseDataset(Dataset):
             idx = class_to_idx[species_key]
             self.samples.append((image_path, idx))
 
-        logger.info(
-            f"Dataset: {len(self.samples)} usable samples, {skipped} skipped "
-            f"(missing file or unknown species)"
-        )
+        logger.info(f"Dataset: {len(self.samples)} usable samples, {skipped} skipped (missing file or unknown species)")
 
     def _find_class_key(self, species_name):
         """Match a species name to the model's class_to_idx keys."""
@@ -211,14 +208,16 @@ def _extract_rgb_stats(rgb_stats):
 def get_training_transform(size, rgb_stats):
     """Create a training transform with data augmentation."""
     mean, std = _extract_rgb_stats(rgb_stats)
-    return transforms.Compose([
-        transforms.RandomResizedCrop(size, scale=(0.7, 1.0)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05),
-        transforms.RandomRotation(15),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean, std=std),
-    ])
+    return transforms.Compose(
+        [
+            transforms.RandomResizedCrop(size, scale=(0.7, 1.0)),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05),
+            transforms.RandomRotation(15),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std),
+        ]
+    )
 
 
 def _unfreeze_head(model):
@@ -232,10 +231,7 @@ def _unfreeze_head(model):
             for param in head_module.parameters():
                 param.requires_grad = True
                 head_params.append(param)
-            logger.info(
-                f"Unfroze head module: '{name}' "
-                f"({sum(p.numel() for p in head_params)} parameters)"
-            )
+            logger.info(f"Unfroze head module: '{name}' ({sum(p.numel() for p in head_params)} parameters)")
             return head_params
 
     # Fallback: unfreeze last 2 parameter groups
@@ -244,10 +240,7 @@ def _unfreeze_head(model):
         for param in all_params[-2:]:
             param.requires_grad = True
             head_params.append(param)
-        logger.info(
-            f"Unfroze last 2 parameter groups as fallback "
-            f"({sum(p.numel() for p in head_params)} parameters)"
-        )
+        logger.info(f"Unfroze last 2 parameter groups as fallback ({sum(p.numel() for p in head_params)} parameters)")
 
     return head_params
 
@@ -277,8 +270,7 @@ def _split_parameters(model):
     return head_params, backbone_params
 
 
-def _save_finetuned(model, base_model_name, epochs, freeze_backbone,
-                    num_samples, best_loss):
+def _save_finetuned(model, base_model_name, epochs, freeze_backbone, num_samples, best_loss):
     """Save fine-tuned model weights and metadata."""
     os.makedirs(FINETUNED_DIR, exist_ok=True)
 
@@ -322,8 +314,9 @@ def run_training(
         training_status = _new_status(epochs, species)
 
     try:
-        _run_training_inner(model_name, epochs, learning_rate, batch_size,
-                            freeze_backbone, val_split, species, classifier)
+        _run_training_inner(
+            model_name, epochs, learning_rate, batch_size, freeze_backbone, val_split, species, classifier
+        )
     except Exception as e:
         logger.error(f"Training failed: {e}", exc_info=True)
         training_status.error = str(e)
@@ -346,8 +339,7 @@ def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val
     if species:
         species_lower = species.lower()
         all_entries = [
-            e for e in all_entries
-            if (e.get("species_corrected") or e.get("species_en") or "").lower() == species_lower
+            e for e in all_entries if (e.get("species_corrected") or e.get("species_en") or "").lower() == species_lower
         ]
         logger.info(f"Filtered to species '{species}': {len(all_entries)} entries")
 
@@ -411,8 +403,7 @@ def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val
 
     mode_label = "head-only" if freeze_backbone else "full"
     training_status.message = (
-        f"Training: {train_size} train / {val_size} val samples, "
-        f"{mode_label} fine-tuning on {device}"
+        f"Training: {train_size} train / {val_size} val samples, {mode_label} fine-tuning on {device}"
     )
 
     # Step 4: Configure optimizer
@@ -422,8 +413,7 @@ def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val
         head_params = _unfreeze_head(model)
         if not head_params:
             raise ValueError(
-                "Could not find classifier head to unfreeze. "
-                "Try freeze_backbone=false for full fine-tuning."
+                "Could not find classifier head to unfreeze. Try freeze_backbone=false for full fine-tuning."
             )
         optimizer = torch.optim.AdamW(head_params, lr=lr, weight_decay=1e-2)
     else:
@@ -489,13 +479,15 @@ def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val
         val_acc = val_correct / max(val_total, 1)
 
         training_status.loss = avg_val_loss
-        training_status.history.append({
-            "epoch": epoch + 1,
-            "train_loss": round(avg_train_loss, 5),
-            "train_acc": round(train_acc, 4),
-            "val_loss": round(avg_val_loss, 5),
-            "val_acc": round(val_acc, 4),
-        })
+        training_status.history.append(
+            {
+                "epoch": epoch + 1,
+                "train_loss": round(avg_train_loss, 5),
+                "train_acc": round(train_acc, 4),
+                "val_loss": round(avg_val_loss, 5),
+                "val_acc": round(val_acc, 4),
+            }
+        )
 
         logger.info(
             f"Epoch {epoch + 1}/{epochs}: "
@@ -507,35 +499,24 @@ def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
             training_status.best_loss = best_val_loss
-            _save_finetuned(model, model_name, epochs, freeze_backbone,
-                            len(all_entries), best_val_loss)
-            training_status.message = (
-                f"Epoch {epoch + 1}/{epochs} - new best! val_loss={avg_val_loss:.4f}"
-            )
+            _save_finetuned(model, model_name, epochs, freeze_backbone, len(all_entries), best_val_loss)
+            training_status.message = f"Epoch {epoch + 1}/{epochs} - new best! val_loss={avg_val_loss:.4f}"
 
-    training_status.message = (
-        f"Training complete! Best val_loss={best_val_loss:.4f}. "
-        f"Reloading model..."
-    )
+    training_status.message = f"Training complete! Best val_loss={best_val_loss:.4f}. Reloading model..."
     logger.info(f"Training complete. Best val_loss={best_val_loss:.4f}")
 
     # Auto-reload the live classifier so it picks up the new weights
     if classifier is None:
         training_status.message = (
-            f"Training complete! Best val_loss={best_val_loss:.4f}. "
-            f"Click Reload Model to use the new weights."
+            f"Training complete! Best val_loss={best_val_loss:.4f}. Click Reload Model to use the new weights."
         )
         return
 
     if classifier.reload_model():
-        training_status.message = (
-            f"Training complete! Best val_loss={best_val_loss:.4f}. "
-            f"Model reloaded successfully."
-        )
+        training_status.message = f"Training complete! Best val_loss={best_val_loss:.4f}. Model reloaded successfully."
         logger.info("Model auto-reloaded after training")
     else:
         logger.warning("Auto-reload after training failed")
         training_status.message = (
-            f"Training complete! Best val_loss={best_val_loss:.4f}. "
-            f"Auto-reload failed, click Reload Model manually."
+            f"Training complete! Best val_loss={best_val_loss:.4f}. Auto-reload failed, click Reload Model manually."
         )

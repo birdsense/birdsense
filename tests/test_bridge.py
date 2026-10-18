@@ -57,10 +57,14 @@ def test_health(bridge_module):
 def test_classify_upload_saves_unique_images(bridge_module, data_dir):
     client = bridge_module.api.test_client()
     for _ in range(2):
-        response = client.post('/api/classify', data={
-            'image': (io.BytesIO(make_jpeg_bytes()), 'bird.jpg'),
-            'camera': 'test',
-        }, content_type='multipart/form-data')
+        response = client.post(
+            '/api/classify',
+            data={
+                'image': (io.BytesIO(make_jpeg_bytes()), 'bird.jpg'),
+                'camera': 'test',
+            },
+            content_type='multipart/form-data',
+        )
         assert response.status_code == 200
         assert response.get_json()['species'] == 'European Robin (90%)'
 
@@ -74,9 +78,13 @@ def test_classify_upload_saves_unique_images(bridge_module, data_dir):
 
 def test_classify_rejects_invalid_upload(bridge_module):
     client = bridge_module.api.test_client()
-    response = client.post('/api/classify', data={
-        'image': (io.BytesIO(b'definitely not an image'), 'bird.jpg'),
-    }, content_type='multipart/form-data')
+    response = client.post(
+        '/api/classify',
+        data={
+            'image': (io.BytesIO(b'definitely not an image'), 'bird.jpg'),
+        },
+        content_type='multipart/form-data',
+    )
     assert response.status_code == 400
 
     assert client.post('/api/classify', data={}).status_code == 400
@@ -99,8 +107,7 @@ def test_update_log_triggers_auto_train(bridge_module, monkeypatch):
 
     database = sys.modules['database']
     ids = [
-        database.ClassificationLog.add_entry('European Robin', 'Roodborst', 80, 'cam', timestamp=i)
-        for i in range(6)
+        database.ClassificationLog.add_entry('European Robin', 'Roodborst', 80, 'cam', timestamp=i) for i in range(6)
     ]
     client = bridge_module.api.test_client()
 

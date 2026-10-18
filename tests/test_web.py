@@ -33,14 +33,17 @@ def test_image_serving_blocks_traversal(web_client, data_dir):
 
 
 def test_config_post_rejects_invalid_numbers(web_client, import_component):
-    response = web_client.post('/config', data={
-        'mqtt_broker': ' broker.local ',
-        'mqtt_port': '',
-        'mqtt_username': '',
-        'mqtt_password': '',
-        'model_name': 'birder-project/convnext_v2_tiny_eu-common',
-        'min_confidence': '150',
-    })
+    response = web_client.post(
+        '/config',
+        data={
+            'mqtt_broker': ' broker.local ',
+            'mqtt_port': '',
+            'mqtt_username': '',
+            'mqtt_password': '',
+            'model_name': 'birder-project/convnext_v2_tiny_eu-common',
+            'min_confidence': '150',
+        },
+    )
     assert response.status_code == 200
 
     database = import_component('web', 'database')

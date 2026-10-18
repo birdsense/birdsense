@@ -147,20 +147,40 @@ class BirdStats:
     """Manage bird detection statistics using SQLite"""
 
     @staticmethod
-    def add_detection(species_nl: str, camera: str, confidence: int,
-                      species_en: str = None, event_id: str = None,
-                      timestamp: int = None, inference_time_ms: int = None,
-                      image_path: str = None, thumbnail_path: str = None):
+    def add_detection(
+        species_nl: str,
+        camera: str,
+        confidence: int,
+        species_en: str = None,
+        event_id: str = None,
+        timestamp: int = None,
+        inference_time_ms: int = None,
+        image_path: str = None,
+        thumbnail_path: str = None,
+    ):
         """Add a new detection to the database"""
         if timestamp is None:
             timestamp = int(datetime.now().timestamp())
 
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                '''
                 INSERT INTO detections (species_nl, species_en, confidence, camera, timestamp, event_id, inference_time_ms, image_path, thumbnail_path)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (species_nl, species_en, confidence, camera, timestamp, event_id, inference_time_ms, image_path, thumbnail_path))
+            ''',
+                (
+                    species_nl,
+                    species_en,
+                    confidence,
+                    camera,
+                    timestamp,
+                    event_id,
+                    inference_time_ms,
+                    image_path,
+                    thumbnail_path,
+                ),
+            )
 
         logger.debug(f"Detection saved: {species_nl} ({confidence}%) from {camera} in {inference_time_ms}ms")
 
@@ -190,13 +210,16 @@ class BirdStats:
         """Get top N species by detection count"""
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                '''
                 SELECT species_nl, COUNT(*) as count
                 FROM detections
                 GROUP BY species_nl
                 ORDER BY count DESC
                 LIMIT ?
-            ''', (limit,))
+            ''',
+                (limit,),
+            )
             return [(row['species_nl'], row['count']) for row in cursor.fetchall()]
 
     @staticmethod
@@ -204,13 +227,16 @@ class BirdStats:
         """Get most recent detections (excluding unknowns)"""
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                '''
                 SELECT species_nl as species, camera, confidence, timestamp, image_path, thumbnail_path
                 FROM detections
                 WHERE LOWER(species_en) != 'unknown' AND LOWER(species_nl) != 'onbekend'
                 ORDER BY timestamp DESC, id DESC
                 LIMIT ?
-            ''', (limit,))
+            ''',
+                (limit,),
+            )
             return [dict(row) for row in cursor.fetchall()]
 
     @staticmethod
@@ -218,13 +244,16 @@ class BirdStats:
         """Get detection counts per day for the last N days"""
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                '''
                 SELECT DATE(timestamp, 'unixepoch') as date, COUNT(*) as count
                 FROM detections
                 WHERE timestamp >= strftime('%s', 'now', ?)
                 GROUP BY date
                 ORDER BY date
-            ''', (f'-{days} days',))
+            ''',
+                (f'-{days} days',),
+            )
             return {row['date']: row['count'] for row in cursor.fetchall()}
 
     @staticmethod
@@ -244,7 +273,7 @@ class BirdStats:
             'species_count': BirdStats.get_species_counts(),
             'last_detections': BirdStats.get_recent_detections(50),
             'daily_counts': BirdStats.get_daily_counts(7),
-            'avg_inference_time_ms': BirdStats.get_avg_inference_time()
+            'avg_inference_time_ms': BirdStats.get_avg_inference_time(),
         }
 
 
@@ -252,11 +281,18 @@ class ClassificationLog:
     """Manage classification log for all classifications including unknowns"""
 
     @staticmethod
-    def add_entry(species_en: str, species_nl: str, confidence: int, camera: str,
-                  top_predictions: list = None, image_path: str = None,
-                  timestamp: int = None):
+    def add_entry(
+        species_en: str,
+        species_nl: str,
+        confidence: int,
+        camera: str,
+        top_predictions: list = None,
+        image_path: str = None,
+        timestamp: int = None,
+    ):
         """Add a new classification to the log"""
         import json
+
         if timestamp is None:
             timestamp = int(datetime.now().timestamp())
 
@@ -264,22 +300,24 @@ class ClassificationLog:
 
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                '''
                 INSERT INTO classification_log
                 (species_en, species_nl, confidence, camera, timestamp, top_predictions, image_path)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (species_en, species_nl, confidence, camera, timestamp,
-                  top_predictions_json, image_path))
+            ''',
+                (species_en, species_nl, confidence, camera, timestamp, top_predictions_json, image_path),
+            )
             log_id = cursor.lastrowid
 
         logger.debug(f"Classification logged: {species_nl} ({confidence}%) - ID: {log_id}")
         return log_id
 
     @staticmethod
-    def get_entries(limit: int = 50, offset: int = 0, status: str = None,
-                    unknowns_only: bool = False) -> list[dict]:
+    def get_entries(limit: int = 50, offset: int = 0, status: str = None, unknowns_only: bool = False) -> list[dict]:
         """Get classification log entries with optional filters"""
         import json
+
         with get_db() as conn:
             cursor = conn.cursor()
 
@@ -295,7 +333,8 @@ class ClassificationLog:
 
             where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
-            cursor.execute(f'''
+            cursor.execute(
+                f'''
                 SELECT id, species_en, species_nl, confidence, camera, timestamp,
                        top_predictions, image_path, status, species_corrected,
                        corrected_at, notes, created_at
@@ -303,7 +342,9 @@ class ClassificationLog:
                 {where_clause}
                 ORDER BY timestamp DESC, id DESC
                 LIMIT ? OFFSET ?
-            ''', (*params, limit, offset))
+            ''',
+                (*params, limit, offset),
+            )
 
             entries = []
             for row in cursor.fetchall():
@@ -318,15 +359,19 @@ class ClassificationLog:
     def get_entry(entry_id: int) -> dict | None:
         """Get a single classification log entry by ID"""
         import json
+
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                '''
                 SELECT id, species_en, species_nl, confidence, camera, timestamp,
                        top_predictions, image_path, status, species_corrected,
                        corrected_at, notes, created_at
                 FROM classification_log
                 WHERE id = ?
-            ''', (entry_id,))
+            ''',
+                (entry_id,),
+            )
             row = cursor.fetchone()
             if row:
                 entry = dict(row)
@@ -336,23 +381,28 @@ class ClassificationLog:
             return None
 
     @staticmethod
-    def update_status(entry_id: int, status: str, species_corrected: str = None,
-                      notes: str = None) -> bool:
+    def update_status(entry_id: int, status: str, species_corrected: str = None, notes: str = None) -> bool:
         """Update the status of a classification log entry"""
         with get_db() as conn:
             cursor = conn.cursor()
             if status == 'corrected' and species_corrected:
-                cursor.execute('''
+                cursor.execute(
+                    '''
                     UPDATE classification_log
                     SET status = ?, species_corrected = ?, corrected_at = CURRENT_TIMESTAMP, notes = ?
                     WHERE id = ?
-                ''', (status, species_corrected, notes, entry_id))
+                ''',
+                    (status, species_corrected, notes, entry_id),
+                )
             else:
-                cursor.execute('''
+                cursor.execute(
+                    '''
                     UPDATE classification_log
                     SET status = ?, notes = ?
                     WHERE id = ?
-                ''', (status, notes, entry_id))
+                ''',
+                    (status, notes, entry_id),
+                )
 
             return cursor.rowcount > 0
 
@@ -406,7 +456,7 @@ class ClassificationLog:
                 'pending': pending,
                 'confirmed': confirmed,
                 'corrected': corrected,
-                'unknowns': unknowns
+                'unknowns': unknowns,
             }
 
 
@@ -439,10 +489,13 @@ class BirdConfig:
         """Set a config value"""
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                '''
                 INSERT OR REPLACE INTO config (key, value, updated_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            ''', (key, value))
+            ''',
+                (key, value),
+            )
 
     @staticmethod
     def get_stored() -> dict[str, str]:
@@ -470,17 +523,20 @@ class BirdConfig:
             cursor = conn.cursor()
             for key, value in config.items():
                 if value is not None:
-                    cursor.execute('''
+                    cursor.execute(
+                        '''
                         INSERT OR REPLACE INTO config (key, value, updated_at)
                         VALUES (?, ?, CURRENT_TIMESTAMP)
-                    ''', (key, str(value)))
+                    ''',
+                        (key, str(value)),
+                    )
 
     @staticmethod
     def load_from_env():
         """Load config from environment variables (migration helper)"""
         import os
-        env_keys = ['MQTT_BROKER', 'MQTT_PORT', 'MQTT_USERNAME', 'MQTT_PASSWORD',
-                    'MODEL_NAME', 'MIN_CONFIDENCE']
+
+        env_keys = ['MQTT_BROKER', 'MQTT_PORT', 'MQTT_USERNAME', 'MQTT_PASSWORD', 'MODEL_NAME', 'MIN_CONFIDENCE']
         config = {}
         for key in env_keys:
             value = os.getenv(key)

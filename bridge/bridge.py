@@ -24,10 +24,7 @@ from flasgger import Swagger
 from flask import Flask, jsonify, request, send_file
 
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Logo path for watermarking
@@ -105,8 +102,14 @@ def add_watermark(image_path: str, species_name: str, output_path: str) -> bool:
 
             # Subtle stroke for readability
             stroke_width = max(2, int(font_size * 0.06))
-            draw.text((text_x, text_y), text, font=font, fill=(255, 255, 255, 220),
-                      stroke_width=stroke_width, stroke_fill=(0, 0, 0, 180))
+            draw.text(
+                (text_x, text_y),
+                text,
+                font=font,
+                fill=(255, 255, 255, 220),
+                stroke_width=stroke_width,
+                stroke_fill=(0, 0, 0, 180),
+            )
 
             # Composite overlay onto original
             watermarked = Image.alpha_composite(img, overlay)
@@ -134,16 +137,10 @@ class BirdIdentificationBridge:
     def setup_mqtt(self):
         """Initialize MQTT client with authentication"""
         # Use CallbackAPIVersion.VERSION2 to avoid deprecation warning
-        self.mqtt_client = mqtt.Client(
-            callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
-            client_id="bird-bridge"
-        )
+        self.mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2, client_id="bird-bridge")
 
         if self.config.MQTT_USERNAME:
-            self.mqtt_client.username_pw_set(
-                self.config.MQTT_USERNAME,
-                self.config.MQTT_PASSWORD
-            )
+            self.mqtt_client.username_pw_set(self.config.MQTT_USERNAME, self.config.MQTT_PASSWORD)
 
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_disconnect = self.on_disconnect
@@ -155,8 +152,7 @@ class BirdIdentificationBridge:
         logger.info(f"Translations: {self.config.TRANSLATION_FILE}")
 
         self.classifier = BirdClassifier(
-            model_name=self.config.MODEL_NAME,
-            translation_file=self.config.TRANSLATION_FILE
+            model_name=self.config.MODEL_NAME, translation_file=self.config.TRANSLATION_FILE
         )
 
         if self.classifier.health_check():
@@ -198,12 +194,7 @@ class BirdIdentificationBridge:
     def publish_bird_detection(self, bird_data: dict):
         """Publish bird detection to MQTT"""
         try:
-            self.mqtt_client.publish(
-                self.config.BIRD_DETECTION_TOPIC,
-                json.dumps(bird_data),
-                retain=True,
-                qos=1
-            )
+            self.mqtt_client.publish(self.config.BIRD_DETECTION_TOPIC, json.dumps(bird_data), retain=True, qos=1)
             logger.info(f"Published: {bird_data['species']} on {bird_data['camera']}")
         except Exception as e:
             logger.error(f"Failed to publish bird detection: {e}")
@@ -253,11 +244,7 @@ class BirdIdentificationBridge:
         for attempt in range(max_retries):
             try:
                 logger.info(f"Connecting to MQTT broker... (attempt {attempt + 1}/{max_retries})")
-                self.mqtt_client.connect(
-                    self.config.MQTT_BROKER,
-                    self.config.MQTT_PORT,
-                    60
-                )
+                self.mqtt_client.connect(self.config.MQTT_BROKER, self.config.MQTT_PORT, 60)
                 logger.info("MQTT connected. API ready for bird classification.")
                 self.mqtt_client.loop_start()  # Run MQTT in background thread
                 # Keep main thread alive for the API server
@@ -301,7 +288,7 @@ swagger_config = {
     ],
     "static_url_path": "/flasgger_static",
     "swagger_ui": True,
-    "specs_route": "/docs"
+    "specs_route": "/docs",
 }
 
 swagger_template = {
@@ -309,16 +296,14 @@ swagger_template = {
         "title": "BirdSense API",
         "description": "AI-powered bird species identification API. Upload an image and receive the predicted bird species with confidence score.",
         "version": "1.0.0",
-        "contact": {
-            "name": "BirdSense"
-        }
+        "contact": {"name": "BirdSense"},
     },
     "basePath": "/",
     "schemes": ["http"],
     "tags": [
         {"name": "Classification", "description": "Bird species classification endpoints"},
-        {"name": "System", "description": "System and health check endpoints"}
-    ]
+        {"name": "System", "description": "System and health check endpoints"},
+    ],
 }
 
 swagger = Swagger(api, config=swagger_config, template=swagger_template)
@@ -430,6 +415,7 @@ def api_classify():
         # File upload
         file = request.files['image']
         from PIL import Image, UnidentifiedImageError
+
         with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp:
             tmp_path = tmp.name
         try:
@@ -447,9 +433,7 @@ def api_classify():
         # Download from URL
         try:
             logger.info(f"API classify: downloading from URL, camera={camera}, lang={lang}")
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
             max_size = _bridge_instance.config.MAX_IMAGE_SIZE
             # Stream with a size cap so a huge/malicious URL can't exhaust memory
             with requests.get(image_url, timeout=30, headers=headers, stream=True) as response:
@@ -521,6 +505,7 @@ def api_classify():
                 thumbnail_path = str(image_dir / f"thumb_{file_stem}.jpg")
                 try:
                     from PIL import Image
+
                     with Image.open(tmp_path) as img:
                         # Calculate thumbnail size (max 300px width, maintain aspect ratio)
                         img.thumbnail((300, 300), Image.Resampling.LANCZOS)
@@ -566,7 +551,7 @@ def api_classify():
                     camera=camera,
                     top_predictions=result.get('top_predictions', []),
                     image_path=saved_image_path,
-                    timestamp=timestamp
+                    timestamp=timestamp,
                 )
                 logger.info(f"Classification logged: {result.get('species_en')} ({confidence}%)")
 
@@ -579,7 +564,7 @@ def api_classify():
                     confidence=confidence,
                     inference_time_ms=result.get('inference_time_ms'),
                     image_path=saved_image_path,
-                    thumbnail_path=thumbnail_path if thumbnail_path != saved_image_path else None
+                    thumbnail_path=thumbnail_path if thumbnail_path != saved_image_path else None,
                 )
                 # Publish to MQTT if configured
                 if _bridge_instance.config.MQTT_BROKER:
@@ -591,7 +576,7 @@ def api_classify():
                         'camera': camera,
                         'timestamp': timestamp,
                         'image_path': saved_image_path,
-                        'top_predictions': result.get('top_predictions', [])
+                        'top_predictions': result.get('top_predictions', []),
                     }
                     _bridge_instance.publish_bird_detection(bird_data)
             return jsonify(result)
@@ -633,10 +618,7 @@ def api_health():
     """
     global _bridge_instance
     if _bridge_instance and _bridge_instance.classifier:
-        return jsonify({
-            'status': 'ok',
-            'classifier_ready': _bridge_instance.classifier.health_check()
-        })
+        return jsonify({'status': 'ok', 'classifier_ready': _bridge_instance.classifier.health_check()})
     return jsonify({'status': 'initializing'}), 503
 
 
@@ -833,25 +815,23 @@ def api_list_images():
                 file_path = image_dir / filename
                 if not file_path.exists():
                     continue
-                images.append({
-                    'filename': filename,
-                    'species_en': row['species_en'],
-                    'species_nl': row['species_nl'],
-                    'timestamp': row['timestamp'],
-                    'url': f"/images/{filename}",
-                    'size': file_path.stat().st_size
-                })
+                images.append(
+                    {
+                        'filename': filename,
+                        'species_en': row['species_en'],
+                        'species_nl': row['species_nl'],
+                        'timestamp': row['timestamp'],
+                        'url': f"/images/{filename}",
+                        'size': file_path.stat().st_size,
+                    }
+                )
     except Exception as e:
         logger.error(f"Error querying detections: {e}")
 
     total = len(images)
-    paginated = images[offset:offset + limit]
+    paginated = images[offset : offset + limit]
 
-    return jsonify({
-        'images': paginated,
-        'total': total,
-        'count': len(paginated)
-    })
+    return jsonify({'images': paginated, 'total': total, 'count': len(paginated)})
 
 
 @api.route('/api/log', methods=['GET'])
@@ -909,15 +889,10 @@ def api_classification_log():
     status = request.args.get('status')
     unknowns_only = request.args.get('unknowns_only', 'false').lower() in ('true', '1', 'yes')
 
-    entries = ClassificationLog.get_entries(limit=limit, offset=offset, status=status,
-                                            unknowns_only=unknowns_only)
+    entries = ClassificationLog.get_entries(limit=limit, offset=offset, status=status, unknowns_only=unknowns_only)
     total = ClassificationLog.get_count(status=status, unknowns_only=unknowns_only)
 
-    return jsonify({
-        'entries': entries,
-        'total': total,
-        'count': len(entries)
-    })
+    return jsonify({'entries': entries, 'total': total, 'count': len(entries)})
 
 
 @api.route('/api/log/stats', methods=['GET'])
@@ -1024,11 +999,13 @@ def api_update_classification_log(entry_id):
     if ClassificationLog.update_status(entry_id, status, species_corrected, notes):
         # Auto-train after confirm/correct
         training_started = _trigger_auto_train()
-        return jsonify({
-            'status': 'ok',
-            'message': 'Entry updated',
-            'training': 'started' if training_started else 'skipped',
-        })
+        return jsonify(
+            {
+                'status': 'ok',
+                'message': 'Entry updated',
+                'training': 'started' if training_started else 'skipped',
+            }
+        )
     return jsonify({'error': 'Entry not found'}), 404
 
 
@@ -1097,6 +1074,7 @@ def api_species_list():
     # Load from translation file
     try:
         import json
+
         translation_file = Path(__file__).parent / "bird_names_nl.json"
         if translation_file.exists():
             with open(translation_file, encoding='utf-8') as f:
@@ -1163,12 +1141,14 @@ def api_reload_config():
 
             logger.info(f"Configuration reloaded. Min confidence: {_bridge_instance.config.MIN_CONFIDENCE_THRESHOLD}%")
 
-            return jsonify({
-                'status': 'ok',
-                'message': 'Configuration reloaded',
-                'model_changed': model_changed,
-                'note': 'Model change requires container restart' if model_changed else None
-            })
+            return jsonify(
+                {
+                    'status': 'ok',
+                    'message': 'Configuration reloaded',
+                    'model_changed': model_changed,
+                    'note': 'Model change requires container restart' if model_changed else None,
+                }
+            )
         except Exception as e:
             logger.error(f"Failed to reload config: {e}")
             return jsonify({'status': 'error', 'message': str(e)}), 500
@@ -1236,13 +1216,14 @@ def api_start_training():
         freeze_backbone=bool(freeze_backbone),
     )
     if not started:
-        return jsonify({'error': 'Training already in progress',
-                        'status': get_training_status().to_dict()}), 409
+        return jsonify({'error': 'Training already in progress', 'status': get_training_status().to_dict()}), 409
 
-    return jsonify({
-        'status': 'ok',
-        'message': 'Training started in background',
-    })
+    return jsonify(
+        {
+            'status': 'ok',
+            'message': 'Training started in background',
+        }
+    )
 
 
 @api.route('/api/train/status', methods=['GET'])
@@ -1256,6 +1237,7 @@ def api_training_status():
         description: Training status
     """
     from train import get_training_status
+
     return jsonify(get_training_status().to_dict())
 
 

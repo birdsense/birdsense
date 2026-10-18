@@ -75,8 +75,8 @@ BIRDER_MODELS = {
         "name": "EfficientNetB2",
         "species_count": 525,
         "input_size": 224,
-        "description": "Global birds (Kaggle dataset)"
-    }
+        "description": "Global birds (Kaggle dataset)",
+    },
 }
 
 
@@ -94,12 +94,7 @@ class BirdClassifier:
     - HuggingFace transformers models (global birds)
     """
 
-    def __init__(
-        self,
-        model_name: str = DEFAULT_MODEL,
-        translation_file: str | None = None,
-        device: str | None = None
-    ):
+    def __init__(self, model_name: str = DEFAULT_MODEL, translation_file: str | None = None, device: str | None = None):
         self.model_name = model_name
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.is_birder_model = model_name.startswith("birder-project/")
@@ -146,9 +141,7 @@ class BirdClassifier:
                 # NaFlex models keep the native aspect ratio; token budget matches the reference size
                 patch_size = self.model.stem_stride
                 max_seq_len = (size[0] // patch_size) * (size[1] // patch_size)
-                self.transform = birder.naflex_transform(
-                    patch_size, max_seq_len, self.model_info.rgb_stats
-                )
+                self.transform = birder.naflex_transform(patch_size, max_seq_len, self.model_info.rgb_stats)
             else:
                 self.transform = birder.classification_transform(size, self.model_info.rgb_stats)
 
@@ -180,8 +173,7 @@ class BirdClassifier:
                 )
                 return
 
-            state_dict = torch.load(FINETUNED_WEIGHTS, map_location=self.device,
-                                    weights_only=True)
+            state_dict = torch.load(FINETUNED_WEIGHTS, map_location=self.device, weights_only=True)
             self.model.load_state_dict(state_dict)
             self.model.eval()
 
@@ -290,18 +282,16 @@ class BirdClassifier:
         for idx in top_indices:
             prob = probabilities[idx]
             name = self.id2label[idx].replace('_', ' ').title()
-            top_predictions.append({
-                'species_en': name,
-                'species_nl': self._translate(name),
-                'confidence': int(prob * 100)
-            })
+            top_predictions.append(
+                {'species_en': name, 'species_nl': self._translate(name), 'confidence': int(prob * 100)}
+            )
 
         result = {
             'species_en': species_en_clean,
             'species_nl': species_nl,
             'species': f"{species_nl} ({confidence}%)",
             'confidence': confidence,
-            'top_predictions': top_predictions
+            'top_predictions': top_predictions,
         }
 
         logger.info(f"Classification: {species_nl} ({confidence}%) [EN: {species_en_clean}]")
@@ -330,18 +320,16 @@ class BirdClassifier:
         top_predictions = []
         for prob, idx in zip(top_probs[0], top_indices[0], strict=True):
             name = self.id2label[idx.item()].replace('_', ' ').title()
-            top_predictions.append({
-                'species_en': name,
-                'species_nl': self._translate(name),
-                'confidence': int(prob.item() * 100)
-            })
+            top_predictions.append(
+                {'species_en': name, 'species_nl': self._translate(name), 'confidence': int(prob.item() * 100)}
+            )
 
         result = {
             'species_en': species_en_clean,
             'species_nl': species_nl,
             'species': f"{species_nl} ({confidence}%)",
             'confidence': confidence,
-            'top_predictions': top_predictions
+            'top_predictions': top_predictions,
         }
 
         logger.info(f"Classification: {species_nl} ({confidence}%) [EN: {species_en_clean}]")

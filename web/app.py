@@ -39,6 +39,7 @@ def _parse_int(value, default: int, minimum: int | None = None, maximum: int | N
 # Initialize database
 init_db()
 
+
 @app.route('/images/<path:filename>')
 def serve_image(filename):
     """Serve images from shared data directory"""
@@ -94,15 +95,17 @@ def index():
         count = daily_counts_dict.get(date, 0)
         last_7_days.append({'date': date, 'count': count})
 
-    return render_template('dashboard.html',
-                         total=total,
-                         species_count=len(species_count),
-                         top_species=top_species,
-                         recent=recent,
-                         daily_counts=last_7_days,
-                         avg_inference_time_ms=avg_inference_time,
-                         config=config,
-                         bridge_url=os.environ.get('BRIDGE_EXTERNAL_URL', 'http://localhost:5001'))
+    return render_template(
+        'dashboard.html',
+        total=total,
+        species_count=len(species_count),
+        top_species=top_species,
+        recent=recent,
+        daily_counts=last_7_days,
+        avg_inference_time_ms=avg_inference_time,
+        config=config,
+        bridge_url=os.environ.get('BRIDGE_EXTERNAL_URL', 'http://localhost:5001'),
+    )
 
 
 @app.route('/config', methods=['GET', 'POST'])
@@ -114,10 +117,12 @@ def config():
         current = BirdConfig.get_all()
         # Numeric fields: fall back to the current value on empty/invalid input, so a
         # blank port can't be saved and later crash the bridge on int() parsing
-        mqtt_port = _parse_int(request.form.get('mqtt_port'), _parse_int(current.get('MQTT_PORT'), 1883),
-                               minimum=1, maximum=65535)
-        min_confidence = _parse_int(request.form.get('min_confidence'),
-                                    _parse_int(current.get('MIN_CONFIDENCE'), 60), minimum=0, maximum=100)
+        mqtt_port = _parse_int(
+            request.form.get('mqtt_port'), _parse_int(current.get('MQTT_PORT'), 1883), minimum=1, maximum=65535
+        )
+        min_confidence = _parse_int(
+            request.form.get('min_confidence'), _parse_int(current.get('MIN_CONFIDENCE'), 60), minimum=0, maximum=100
+        )
         config_data = {
             'MQTT_BROKER': (request.form.get('mqtt_broker') or '').strip(),
             'MQTT_PORT': str(mqtt_port),
@@ -167,18 +172,13 @@ def log():
         status = filter_type
 
     # Get entries and stats
-    entries = ClassificationLog.get_entries(limit=limit, offset=offset, status=status,
-                                            unknowns_only=unknowns_only)
+    entries = ClassificationLog.get_entries(limit=limit, offset=offset, status=status, unknowns_only=unknowns_only)
     total = ClassificationLog.get_count(status=status, unknowns_only=unknowns_only)
     stats = ClassificationLog.get_stats()
 
-    return render_template('log.html',
-                          entries=entries,
-                          total=total,
-                          stats=stats,
-                          filter=filter_type,
-                          offset=offset,
-                          limit=limit)
+    return render_template(
+        'log.html', entries=entries, total=total, stats=stats, filter=filter_type, offset=offset, limit=limit
+    )
 
 
 @app.route('/api/log/<int:entry_id>', methods=['PUT'])
@@ -307,10 +307,7 @@ def api_classify():
 
         with open(tmp_path, 'rb') as f:
             response = requests.post(
-                bridge_url,
-                files={'image': f},
-                data={'camera': camera, 'skip_stats': skip_stats},
-                timeout=30
+                bridge_url, files={'image': f}, data={'camera': camera, 'skip_stats': skip_stats}, timeout=30
             )
 
         if response.status_code == 200:
@@ -320,17 +317,18 @@ def api_classify():
                 error_detail = response.json()
             except Exception:
                 error_detail = response.text
-            return jsonify({
-                'error': 'Classifier service unavailable',
-                'status_code': response.status_code,
-                'details': error_detail
-            }), 503
+            return jsonify(
+                {
+                    'error': 'Classifier service unavailable',
+                    'status_code': response.status_code,
+                    'details': error_detail,
+                }
+            ), 503
 
     except requests.exceptions.ConnectionError:
-        return jsonify({
-            'error': 'Could not connect to classifier service. '
-                     'Make sure the bridge container is running.'
-        }), 503
+        return jsonify(
+            {'error': 'Could not connect to classifier service. Make sure the bridge container is running.'}
+        ), 503
     except Exception as e:
         return jsonify({'error': f'Classification error: {str(e)}'}), 500
     finally:
