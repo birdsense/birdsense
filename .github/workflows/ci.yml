@@ -28,7 +28,7 @@ jobs:
 
       - name: Run Ruff (fast linter)
         run: |
-          ruff check bridge/ web/ --output-format=github
+          ruff check bridge/ web/ tests/ --output-format=github
 
       - name: Run Pylint on bridge
         run: |
@@ -37,6 +37,26 @@ jobs:
       - name: Run Pylint on web
         run: |
           pylint web/*.py --exit-zero --output-format=colorized
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test dependencies
+        # torch/birder are not needed: the tests stub out the classifier
+        run: |
+          pip install pytest -r web/requirements.txt flasgger paho-mqtt python-dotenv
+
+      - name: Run pytest
+        run: |
+          pytest -q
 
   docker:
     name: Docker Build
