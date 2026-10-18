@@ -47,5 +47,9 @@ ignore = [
     "B008",  # function call in default argument
 ]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider"
+
 [tool.ruff.lint.isort]
 known-first-party = ["bridge", "web"]

@@ -6,10 +6,12 @@ AI-powered bird species classification with MQTT event publishing
 
 import json
 import logging
+import re
 import shutil
 import tempfile
 import threading
 import time
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -427,14 +429,19 @@ def api_classify():
     if 'image' in request.files and request.files['image'].filename != '':
         # File upload
         file = request.files['image']
+        from PIL import Image, UnidentifiedImageError
         with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp:
-            # Convert to RGB to handle PNG with alpha channel
-            from PIL import Image
-            img = Image.open(file)
-            if img.mode in ('RGBA', 'P', 'LA'):
-                img = img.convert('RGB')
-            img.save(tmp.name, 'JPEG', quality=95)
             tmp_path = tmp.name
+        try:
+            # Convert to RGB to handle PNG with alpha channel (and other non-JPEG modes)
+            with Image.open(file) as img:
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                img.save(tmp_path, 'JPEG', quality=95)
+        except (UnidentifiedImageError, OSError, ValueError) as e:
+            Path(tmp_path).unlink(missing_ok=True)
+            logger.warning(f"API classify: invalid image upload: {e}")
+            return jsonify({'error': 'Uploaded file is not a valid image'}), 400
         logger.info(f"API classify: file upload, camera={camera}, lang={lang}, skip_stats={skip_stats}")
     elif image_url:
         # Download from URL
@@ -443,11 +450,19 @@ def api_classify():
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             }
-            response = requests.get(image_url, timeout=30, headers=headers)
-            response.raise_for_status()
-
-            content_type = response.headers.get('content-type', '')
-            content = response.content
+            max_size = _bridge_instance.config.MAX_IMAGE_SIZE
+            # Stream with a size cap so a huge/malicious URL can't exhaust memory
+            with requests.get(image_url, timeout=30, headers=headers, stream=True) as response:
+                response.raise_for_status()
+                content_type = response.headers.get('content-type', '')
+                chunks = []
+                received = 0
+                for chunk in response.iter_content(chunk_size=65536):
+                    received += len(chunk)
+                    if received > max_size:
+                        return jsonify({'error': f'Image too large (max: {max_size} bytes)'}), 400
+                    chunks.append(chunk)
+                content = b''.join(chunks)
 
             # Check if it's an image by content-type OR magic bytes
             # Some CDNs (like BirdBuddy's CloudFront) return wrong content-type
@@ -496,11 +511,14 @@ def api_classify():
             saved_image_path = None
             thumbnail_path = None
             if _bridge_instance.config.SAVE_IMAGES:
-                species_safe = result.get('species_en', 'unknown').replace(' ', '_').lower()
-                saved_image_path = str(image_dir / f"{species_safe}_{timestamp}.jpg")
+                species_safe = re.sub(r'[^a-z0-9_-]+', '_', (result.get('species_en') or 'unknown').lower())
+                # Unique suffix: two classifications of the same species within one second
+                # would otherwise overwrite each other's image
+                file_stem = f"{species_safe}_{timestamp}_{uuid.uuid4().hex[:8]}"
+                saved_image_path = str(image_dir / f"{file_stem}.jpg")
 
                 # Create thumbnail for dashboard
-                thumbnail_path = str(image_dir / f"thumb_{species_safe}_{timestamp}.jpg")
+                thumbnail_path = str(image_dir / f"thumb_{file_stem}.jpg")
                 try:
                     from PIL import Image
                     with Image.open(tmp_path) as img:
@@ -989,7 +1007,7 @@ def api_update_classification_log(entry_id):
       404:
         description: Entry not found
     """
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
@@ -1005,44 +1023,48 @@ def api_update_classification_log(entry_id):
 
     if ClassificationLog.update_status(entry_id, status, species_corrected, notes):
         # Auto-train after confirm/correct
-        _trigger_auto_train()
-        return jsonify({'status': 'ok', 'message': 'Entry updated', 'training': 'started'})
+        training_started = _trigger_auto_train()
+        return jsonify({
+            'status': 'ok',
+            'message': 'Entry updated',
+            'training': 'started' if training_started else 'skipped',
+        })
     return jsonify({'error': 'Entry not found'}), 404
 
 
-def _trigger_auto_train():
-    """Start background training automatically after a confirm/correct."""
-    from train import run_training, training_status
+def _trigger_auto_train() -> bool:
+    """Start background training automatically after a confirm/correct.
 
-    if training_status.running:
+    Returns True if a training run was started.
+    """
+    from train import get_training_status, start_training
+
+    if get_training_status().running:
         logger.debug("Auto-train skipped: training already in progress")
-        return
+        return False
 
-    global _bridge_instance
     if _bridge_instance is None or _bridge_instance.classifier is None:
         logger.debug("Auto-train skipped: classifier not initialized")
-        return
+        return False
 
     # Check if there's enough training data
     stats = ClassificationLog.get_stats()
     total_labeled = stats.get('confirmed', 0) + stats.get('corrected', 0)
     if total_labeled < 5:
         logger.debug(f"Auto-train skipped: only {total_labeled} labeled samples (need 5)")
-        return
+        return False
 
-    train_thread = threading.Thread(
-        target=run_training,
-        kwargs={
-            'model_name': _bridge_instance.config.MODEL_NAME,
-            'epochs': 10,
-            'learning_rate': 1e-4,
-            'batch_size': 8,
-            'freeze_backbone': True,
-        },
-        daemon=True,
+    started = start_training(
+        classifier=_bridge_instance.classifier,
+        model_name=_bridge_instance.config.MODEL_NAME,
+        epochs=10,
+        learning_rate=1e-4,
+        batch_size=8,
+        freeze_backbone=True,
     )
-    train_thread.start()
-    logger.info(f"Auto-train started with {total_labeled} labeled samples")
+    if started:
+        logger.info(f"Auto-train started with {total_labeled} labeled samples")
+    return started
 
 
 @api.route('/api/species', methods=['GET'])
@@ -1187,34 +1209,35 @@ def api_start_training():
       503:
         description: Classifier not initialized
     """
-    from train import run_training, training_status
-
-    if training_status.running:
-        return jsonify({'error': 'Training already in progress',
-                        'status': training_status.to_dict()}), 409
-
-    global _bridge_instance
     if _bridge_instance is None or _bridge_instance.classifier is None:
         return jsonify({'error': 'Classifier not initialized'}), 503
 
-    data = request.get_json() or {}
-    epochs = data.get('epochs', 10)
-    lr = data.get('learning_rate', 1e-4)
-    batch_size = data.get('batch_size', 8)
+    data = request.get_json(silent=True) or {}
+    try:
+        epochs = int(data.get('epochs', 10))
+        lr = float(data.get('learning_rate', 1e-4))
+        batch_size = int(data.get('batch_size', 8))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'epochs, learning_rate and batch_size must be numbers'}), 400
+    if not (1 <= epochs <= 100 and 1 <= batch_size <= 256 and 0 < lr < 1):
+        return jsonify({'error': 'Parameter out of range (epochs 1-100, batch_size 1-256, 0 < learning_rate < 1)'}), 400
     freeze_backbone = data.get('freeze_backbone', True)
+    if isinstance(freeze_backbone, str):
+        freeze_backbone = freeze_backbone.lower() in ('true', '1', 'yes')
 
-    train_thread = threading.Thread(
-        target=run_training,
-        kwargs={
-            'model_name': _bridge_instance.config.MODEL_NAME,
-            'epochs': epochs,
-            'learning_rate': lr,
-            'batch_size': batch_size,
-            'freeze_backbone': freeze_backbone,
-        },
-        daemon=True,
+    from train import get_training_status, start_training
+
+    started = start_training(
+        classifier=_bridge_instance.classifier,
+        model_name=_bridge_instance.config.MODEL_NAME,
+        epochs=epochs,
+        learning_rate=lr,
+        batch_size=batch_size,
+        freeze_backbone=bool(freeze_backbone),
     )
-    train_thread.start()
+    if not started:
+        return jsonify({'error': 'Training already in progress',
+                        'status': get_training_status().to_dict()}), 409
 
     return jsonify({
         'status': 'ok',
@@ -1232,8 +1255,8 @@ def api_training_status():
       200:
         description: Training status
     """
-    from train import training_status
-    return jsonify(training_status.to_dict())
+    from train import get_training_status
+    return jsonify(get_training_status().to_dict())
 
 
 @api.route('/api/train/reload', methods=['POST'])

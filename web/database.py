@@ -12,13 +12,17 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-DATABASE_FILE = '/data/birdsense.db'
+DATABASE_FILE = os.environ.get('DATABASE_FILE', '/data/birdsense.db')
+
+# Both the bridge and web containers write to the same SQLite file. Wait for
+# locks instead of failing immediately with "database is locked".
+DB_TIMEOUT_SECONDS = 30
 
 
 @contextmanager
 def get_db():
     """Context manager for database connections"""
-    conn = sqlite3.connect(DATABASE_FILE)
+    conn = sqlite3.connect(DATABASE_FILE, timeout=DB_TIMEOUT_SECONDS)
     conn.row_factory = sqlite3.Row
     try:
         yield conn
@@ -36,6 +40,13 @@ def init_db():
 
     with get_db() as conn:
         cursor = conn.cursor()
+
+        # WAL lets readers (web dashboard) and the writer (bridge) work concurrently.
+        # The setting is persistent in the database file.
+        try:
+            cursor.execute('PRAGMA journal_mode=WAL')
+        except sqlite3.OperationalError as e:
+            logger.warning(f"Could not enable WAL journal mode: {e}")
 
         # Detections table
         cursor.execute('''
@@ -414,6 +425,14 @@ class BirdConfig:
                 INSERT OR REPLACE INTO config (key, value, updated_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             ''', (key, value))
+
+    @staticmethod
+    def get_stored() -> dict[str, str]:
+        """Get only the config values explicitly stored in the database (no defaults)"""
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT key, value FROM config')
+            return {row['key']: row['value'] for row in cursor.fetchall()}
 
     @staticmethod
     def get_all() -> dict[str, str]:

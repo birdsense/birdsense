@@ -11,7 +11,7 @@ services:
       - MQTT_USERNAME=${MQTT_USERNAME:-}
       - MQTT_PASSWORD=${MQTT_PASSWORD:-}
       - MODEL_NAME=${MODEL_NAME:-birder-project/convnext_v2_tiny_eu-common}
-      - MIN_CONFIDENCE=${MIN_CONFIDENCE:-30}
+      - MIN_CONFIDENCE=${MIN_CONFIDENCE:-60}
     restart: unless-stopped
     volumes:
       - /tmp:/tmp

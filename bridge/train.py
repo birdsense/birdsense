@@ -9,6 +9,7 @@ corrected entries from the classification log.
 import json
 import logging
 import os
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -57,8 +58,54 @@ class TrainingStatus:
         }
 
 
-# Global singleton — read by bridge.py API endpoints
+# Global singleton — read by bridge.py API endpoints via get_training_status().
+# It is replaced (not mutated) at the start of each run, so callers must not cache it.
 training_status = TrainingStatus()
+
+# Guards the check-and-start in start_training() so concurrent requests (e.g. several
+# confirms in the log page) cannot launch two training runs at once.
+_start_lock = threading.Lock()
+
+
+def get_training_status() -> TrainingStatus:
+    """Return the status object of the current/most recent training run."""
+    return training_status
+
+
+def _new_status(epochs, species=""):
+    species_label = f" for '{species}'" if species else ""
+    return TrainingStatus(
+        running=True,
+        total_epochs=epochs,
+        started_at=time.time(),
+        message=f"Loading training data{species_label}...",
+    )
+
+
+def start_training(classifier=None, **kwargs) -> bool:
+    """
+    Start run_training() in a background thread unless a run is already active.
+
+    Args:
+        classifier: the live BirdClassifier instance to reload after training
+        **kwargs: forwarded to run_training()
+
+    Returns:
+        True if a new training run was started, False if one is already running.
+    """
+    global training_status
+    with _start_lock:
+        if training_status.running:
+            return False
+        # Mark as running synchronously so the next caller sees it immediately
+        training_status = _new_status(kwargs.get("epochs", 10), kwargs.get("species", ""))
+        thread = threading.Thread(
+            target=run_training,
+            kwargs={**kwargs, "classifier": classifier, "_status_ready": True},
+            daemon=True,
+        )
+        thread.start()
+        return True
 
 
 class BirdSenseDataset(Dataset):
@@ -87,7 +134,7 @@ class BirdSenseDataset(Dataset):
             else:
                 species = entry["species_en"]
 
-            species_key = self._find_class_key(species)
+            species_key = self._find_class_key(species) if species else None
             if species_key is None:
                 logger.debug(f"Skipping entry: species '{species}' not in model vocabulary")
                 skipped += 1
@@ -235,7 +282,11 @@ def _save_finetuned(model, base_model_name, epochs, freeze_backbone,
     """Save fine-tuned model weights and metadata."""
     os.makedirs(FINETUNED_DIR, exist_ok=True)
 
-    torch.save(model.state_dict(), FINETUNED_WEIGHTS)
+    # Write to a temp file and atomically replace, so a concurrent model reload
+    # never reads a half-written checkpoint.
+    tmp_weights = FINETUNED_WEIGHTS + ".tmp"
+    torch.save(model.state_dict(), tmp_weights)
+    os.replace(tmp_weights, FINETUNED_WEIGHTS)
 
     meta = {
         "base_model": base_model_name,
@@ -246,8 +297,10 @@ def _save_finetuned(model, base_model_name, epochs, freeze_backbone,
         "saved_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "device": "cuda" if torch.cuda.is_available() else "cpu",
     }
-    with open(FINETUNED_META, "w") as f:
+    tmp_meta = FINETUNED_META + ".tmp"
+    with open(tmp_meta, "w") as f:
         json.dump(meta, f, indent=2)
+    os.replace(tmp_meta, FINETUNED_META)
 
     logger.info(f"Fine-tuned model saved to {FINETUNED_WEIGHTS}")
 
@@ -260,20 +313,17 @@ def run_training(
     freeze_backbone: bool = True,
     val_split: float = 0.2,
     species: str = "",
+    classifier=None,
+    _status_ready: bool = False,
 ):
-    """Main training function. Runs in a background thread."""
+    """Main training function. Runs in a background thread (see start_training)."""
     global training_status
-    species_label = f" for '{species}'" if species else ""
-    training_status = TrainingStatus(
-        running=True,
-        total_epochs=epochs,
-        started_at=time.time(),
-        message=f"Loading training data{species_label}...",
-    )
+    if not _status_ready:
+        training_status = _new_status(epochs, species)
 
     try:
         _run_training_inner(model_name, epochs, learning_rate, batch_size,
-                            freeze_backbone, val_split, species)
+                            freeze_backbone, val_split, species, classifier)
     except Exception as e:
         logger.error(f"Training failed: {e}", exc_info=True)
         training_status.error = str(e)
@@ -283,7 +333,7 @@ def run_training(
         training_status.finished_at = time.time()
 
 
-def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val_split, species):
+def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val_split, species, classifier=None):
     global training_status
     from database import ClassificationLog
 
@@ -297,7 +347,7 @@ def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val
         species_lower = species.lower()
         all_entries = [
             e for e in all_entries
-            if (e.get("species_corrected") or e.get("species_en", "")).lower() == species_lower
+            if (e.get("species_corrected") or e.get("species_en") or "").lower() == species_lower
         ]
         logger.info(f"Filtered to species '{species}': {len(all_entries)} entries")
 
@@ -466,17 +516,22 @@ def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val
     )
     logger.info(f"Training complete. Best val_loss={best_val_loss:.4f}")
 
-    # Auto-reload the model after training
-    try:
-        from classifier import BirdClassifier
-        BirdClassifier.reload_model()
+    # Auto-reload the live classifier so it picks up the new weights
+    if classifier is None:
+        training_status.message = (
+            f"Training complete! Best val_loss={best_val_loss:.4f}. "
+            f"Click Reload Model to use the new weights."
+        )
+        return
+
+    if classifier.reload_model():
         training_status.message = (
             f"Training complete! Best val_loss={best_val_loss:.4f}. "
             f"Model reloaded successfully."
         )
         logger.info("Model auto-reloaded after training")
-    except Exception as e:
-        logger.warning(f"Auto-reload failed: {e}")
+    else:
+        logger.warning("Auto-reload after training failed")
         training_status.message = (
             f"Training complete! Best val_loss={best_val_loss:.4f}. "
             f"Auto-reload failed, click Reload Model manually."

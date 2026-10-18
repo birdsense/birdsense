@@ -10,10 +10,31 @@ from datetime import datetime, timedelta
 
 import requests
 from database import BirdConfig, BirdStats, ClassificationLog, init_db
-from flask import Flask, jsonify, redirect, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request, send_from_directory
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
+
+IMAGE_DIR = os.environ.get('IMAGE_DIR', '/data/images')
+
+
+def get_bridge_url() -> str:
+    """Internal URL of the bridge API (container-to-container)"""
+    return os.environ.get('BRIDGE_URL', 'http://host.docker.internal:5001').rstrip('/')
+
+
+def _parse_int(value, default: int, minimum: int | None = None, maximum: int | None = None) -> int:
+    """Parse an int from user input, clamping to [minimum, maximum]; default on invalid input"""
+    try:
+        result = int(value)
+    except (TypeError, ValueError):
+        return default
+    if minimum is not None:
+        result = max(minimum, result)
+    if maximum is not None:
+        result = min(maximum, result)
+    return result
+
 
 # Initialize database
 init_db()
@@ -21,11 +42,8 @@ init_db()
 @app.route('/images/<path:filename>')
 def serve_image(filename):
     """Serve images from shared data directory"""
-    try:
-        from flask import send_from_directory
-        return send_from_directory('/data/images', filename)
-    except FileNotFoundError:
-        return "Image not found", 404
+    # send_from_directory rejects path traversal and returns 404 for missing files
+    return send_from_directory(IMAGE_DIR, filename)
 
 
 # Jinja2 filter for timestamp formatting
@@ -93,13 +111,20 @@ def config():
     saved = False
     reload_result = None
     if request.method == 'POST':
+        current = BirdConfig.get_all()
+        # Numeric fields: fall back to the current value on empty/invalid input, so a
+        # blank port can't be saved and later crash the bridge on int() parsing
+        mqtt_port = _parse_int(request.form.get('mqtt_port'), _parse_int(current.get('MQTT_PORT'), 1883),
+                               minimum=1, maximum=65535)
+        min_confidence = _parse_int(request.form.get('min_confidence'),
+                                    _parse_int(current.get('MIN_CONFIDENCE'), 60), minimum=0, maximum=100)
         config_data = {
-            'MQTT_BROKER': request.form.get('mqtt_broker'),
-            'MQTT_PORT': request.form.get('mqtt_port'),
+            'MQTT_BROKER': (request.form.get('mqtt_broker') or '').strip(),
+            'MQTT_PORT': str(mqtt_port),
             'MQTT_USERNAME': request.form.get('mqtt_username'),
             'MQTT_PASSWORD': request.form.get('mqtt_password'),
-            'MODEL_NAME': request.form.get('model_name'),
-            'MIN_CONFIDENCE': request.form.get('min_confidence')
+            'MODEL_NAME': request.form.get('model_name') or current.get('MODEL_NAME'),
+            'MIN_CONFIDENCE': str(min_confidence),
         }
 
         # Save to database
@@ -108,7 +133,7 @@ def config():
 
         # Try to hot-reload the bridge config
         try:
-            bridge_url = os.environ.get('BRIDGE_URL', 'http://host.docker.internal:5001')
+            bridge_url = get_bridge_url()
             response = requests.post(f"{bridge_url}/api/reload-config", timeout=5)
             if response.status_code == 200:
                 reload_result = response.json()
@@ -129,7 +154,7 @@ def test():
 def log():
     """Classification log page"""
     filter_type = request.args.get('filter')
-    offset = int(request.args.get('offset', 0))
+    offset = _parse_int(request.args.get('offset'), 0, minimum=0)
     limit = 20
 
     # Get filter parameters
@@ -159,7 +184,7 @@ def log():
 @app.route('/api/log/<int:entry_id>', methods=['PUT'])
 def api_update_log(entry_id):
     """Update a classification log entry"""
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
@@ -173,8 +198,20 @@ def api_update_log(entry_id):
 
     notes = data.get('notes')
 
+    # Route the update through the bridge: it writes the same database and also
+    # triggers auto-training. Updating the DB directly here would skip training.
+    try:
+        response = requests.put(
+            f"{get_bridge_url()}/api/log/{entry_id}",
+            json={'status': status, 'species_corrected': species_corrected, 'notes': notes},
+            timeout=10,
+        )
+        return jsonify(response.json()), response.status_code
+    except (requests.exceptions.RequestException, ValueError):
+        pass  # Bridge unavailable or returned non-JSON: fall back to a local update
+
     if ClassificationLog.update_status(entry_id, status, species_corrected, notes):
-        return jsonify({'status': 'ok'})
+        return jsonify({'status': 'ok', 'training': 'unavailable'})
     return jsonify({'error': 'Entry not found'}), 404
 
 
@@ -182,7 +219,7 @@ def api_update_log(entry_id):
 def api_species():
     """Proxy endpoint to get species list from bridge"""
     try:
-        bridge_url = os.environ.get('BRIDGE_URL', 'http://host.docker.internal:5001')
+        bridge_url = get_bridge_url()
         response = requests.get(f"{bridge_url}/api/species", timeout=5)
         if response.status_code == 200:
             return jsonify(response.json())
@@ -202,10 +239,10 @@ def training():
 def api_train():
     """Proxy training request to bridge"""
     try:
-        bridge_url = os.environ.get('BRIDGE_URL', 'http://host.docker.internal:5001')
+        bridge_url = get_bridge_url()
         response = requests.post(
             f"{bridge_url}/api/train",
-            json=request.get_json() or {},
+            json=request.get_json(silent=True) or {},
             timeout=10,
         )
         return jsonify(response.json()), response.status_code
@@ -217,7 +254,7 @@ def api_train():
 def api_train_status():
     """Proxy training status from bridge"""
     try:
-        bridge_url = os.environ.get('BRIDGE_URL', 'http://host.docker.internal:5001')
+        bridge_url = get_bridge_url()
         response = requests.get(f"{bridge_url}/api/train/status", timeout=5)
         return jsonify(response.json())
     except Exception:
@@ -228,7 +265,7 @@ def api_train_status():
 def api_train_reload():
     """Proxy model reload request to bridge"""
     try:
-        bridge_url = os.environ.get('BRIDGE_URL', 'http://host.docker.internal:5001')
+        bridge_url = get_bridge_url()
         response = requests.post(f"{bridge_url}/api/train/reload", timeout=30)
         return jsonify(response.json()), response.status_code
     except Exception as e:
@@ -266,7 +303,7 @@ def api_classify():
 
     try:
         # Call the bridge classifier API
-        bridge_url = os.environ.get('BRIDGE_URL', 'http://host.docker.internal:5001') + '/api/classify'
+        bridge_url = get_bridge_url() + '/api/classify'
 
         with open(tmp_path, 'rb') as f:
             response = requests.post(
