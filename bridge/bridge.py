@@ -178,7 +178,7 @@ class BirdIdentificationBridge:
 
     def analyze_bird(self, image_path: str) -> dict[str, Any] | None:
         """
-        Classify bird image using EfficientNet model
+        Classify bird image using the configured classifier model
 
         Returns:
             Dict with 'species', 'species_en', 'species_nl', 'confidence' or None on error

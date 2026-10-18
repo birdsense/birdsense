@@ -56,7 +56,7 @@ class Config:
         self.MQTT_PASSWORD = config.get('MQTT_PASSWORD') or None
 
         # Model settings
-        self.MODEL_NAME = config.get('MODEL_NAME', 'birder-project/convnext_v2_tiny_eu-common')
+        self.MODEL_NAME = config.get('MODEL_NAME', 'birder-project/vit_parallel_s16_18x2_ls_avg_data2vec-intermediate-eu-common')
         self.TRANSLATION_FILE = os.getenv('TRANSLATION_FILE', '/app/bird_names_nl.json')
 
         # MQTT topic for publishing bird detections

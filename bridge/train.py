@@ -2,8 +2,8 @@
 """
 BirdSense - Model Fine-Tuning Pipeline
 
-Fine-tunes the ConvNeXt V2 bird classification model using confirmed and
-corrected entries from the classification log.
+Fine-tunes the configured birder EU-common bird classification model using
+confirmed and corrected entries from the classification log.
 """
 
 import json
@@ -306,7 +306,7 @@ def _save_finetuned(model, base_model_name, epochs, freeze_backbone,
 
 
 def run_training(
-    model_name: str = "birder-project/convnext_v2_tiny_eu-common",
+    model_name: str = "birder-project/vit_parallel_s16_18x2_ls_avg_data2vec-intermediate-eu-common",
     epochs: int = 10,
     learning_rate: float = 1e-4,
     batch_size: int = 8,
@@ -363,6 +363,9 @@ def _run_training_inner(model_name, epochs, lr, batch_size, freeze_backbone, val
     training_status.message = f"Found {len(all_entries)} training samples. Loading model..."
 
     # Step 2: Load the base model for training
+    if not model_name.startswith("birder-project/"):
+        raise ValueError(f"Fine-tuning is only supported for birder-project models, not '{model_name}'")
+
     import birder
 
     birder_model_id = model_name.replace("birder-project/", "")

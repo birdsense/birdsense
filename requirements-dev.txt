@@ -2,3 +2,4 @@
 # Keep ruff in sync with .pre-commit-config.yaml (Renovate groups them).
 ruff==0.17.1
 pylint==4.1.3
+pytest==9.1.1

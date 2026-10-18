@@ -10,14 +10,14 @@ services:
       - MQTT_PORT=${MQTT_PORT:-1883}
       - MQTT_USERNAME=${MQTT_USERNAME:-}
       - MQTT_PASSWORD=${MQTT_PASSWORD:-}
-      - MODEL_NAME=${MODEL_NAME:-birder-project/convnext_v2_tiny_eu-common}
+      - MODEL_NAME=${MODEL_NAME:-birder-project/vit_parallel_s16_18x2_ls_avg_data2vec-intermediate-eu-common}
       - MIN_CONFIDENCE=${MIN_CONFIDENCE:-60}
     restart: unless-stopped
     volumes:
       - /tmp:/tmp
       - birdsense-data:/data          # Shared SQLite database
       - birdsense-images:/data/images # Images storage
-      - birdsense-models:/data/models # Fine-tuned model weights
+      - birdsense-models:/data/models # Fine-tuned weights + downloaded birder models (/data/models/birder)
       - model-cache:/root/.cache/huggingface  # Persist downloaded models
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]

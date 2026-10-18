@@ -419,7 +419,7 @@ class BirdConfig:
         'MQTT_PORT': '1883',
         'MQTT_USERNAME': '',
         'MQTT_PASSWORD': '',
-        'MODEL_NAME': 'birder-project/convnext_v2_tiny_eu-common',
+        'MODEL_NAME': 'birder-project/vit_parallel_s16_18x2_ls_avg_data2vec-intermediate-eu-common',
         'MIN_CONFIDENCE': '60',
     }
 

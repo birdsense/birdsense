@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 BirdSense - Bird Species Classifier
-Uses birder-project EU-common model for European bird species classification
+Uses birder-project EU-common models for European bird species classification
 """
 
 import json
@@ -19,13 +19,56 @@ logger = logging.getLogger(__name__)
 FINETUNED_WEIGHTS = "/data/models/finetuned_latest.pt"
 FINETUNED_META = "/data/models/finetuned_meta.json"
 
-# Model configurations
+# Default model. All "eu-common" birder models share the exact same 707-class
+# label set (same order), so Dutch names and logged species labels stay valid
+# when switching between them. Fine-tuned weights are tied to one base model.
+DEFAULT_MODEL = "birder-project/vit_parallel_s16_18x2_ls_avg_data2vec-intermediate-eu-common"
+LEGACY_MODEL = "birder-project/convnext_v2_tiny_eu-common"
+
+# Model configurations. Accuracy / macro-F1 are on the eu-common validation set
+# (19.9k images) from the Birder leaderboard
+# (https://huggingface.co/spaces/birder-project/leaderboard).
 BIRDER_MODELS = {
-    "birder-project/convnext_v2_tiny_eu-common": {
-        "name": "ConvNeXt V2 EU-Common",
+    "birder-project/vit_parallel_s16_18x2_ls_avg_data2vec-intermediate-eu-common": {
+        "name": "ViT Parallel S16 (data2vec, intermediate) EU-Common",
         "species_count": 707,
         "input_size": 384,
-        "description": "European birds (Collins Bird Guide)"
+        "params_m": 64.6,
+        "accuracy": 98.03,
+        "description": "European birds (Collins Bird Guide) - recommended, best accuracy/cost balance",
+    },
+    "birder-project/hiera_abswin_base_mim-intermediate-eu-common": {
+        "name": "Hiera AbsWin Base (MIM, intermediate) EU-Common",
+        "species_count": 707,
+        "input_size": 384,
+        "params_m": 51.0,
+        "accuracy": 97.80,
+        "description": "European birds (Collins Bird Guide) - lighter than ViT Parallel",
+    },
+    "birder-project/convnext_v2_tiny_intermediate-eu-common": {
+        "name": "ConvNeXt V2 Tiny (intermediate) EU-Common",
+        "species_count": 707,
+        "input_size": 384,
+        "params_m": 28.4,
+        "accuracy": 97.43,
+        "description": "European birds (Collins Bird Guide) - fastest, for low-end hardware",
+    },
+    "birder-project/convnext_v2_tiny_eu-common": {
+        "name": "ConvNeXt V2 Tiny EU-Common (legacy)",
+        "species_count": 707,
+        "input_size": 384,
+        "params_m": 28.4,
+        "accuracy": 97.23,
+        "description": "European birds (Collins Bird Guide) - previous default",
+    },
+    "birder-project/naflex_vit_reg4_so150m_p14_ls_dino-v2-bio-intermediate-eu-common": {
+        "name": "NaFlex ViT SO150M (Bio-DINOv2, intermediate) EU-Common",
+        "species_count": 707,
+        "input_size": 336,
+        "params_m": 134.3,
+        "accuracy": 98.46,
+        "naflex": True,
+        "description": "European birds (Collins Bird Guide) - most accurate, ~5x slower on CPU",
     },
     "dennisjooo/Birds-Classifier-EfficientNetB2": {
         "name": "EfficientNetB2",
@@ -34,6 +77,11 @@ BIRDER_MODELS = {
         "description": "Global birds (Kaggle dataset)"
     }
 }
+
+
+def is_naflex_model(model_name: str) -> bool:
+    """Whether the model expects NaFlex (native aspect ratio) preprocessing at inference."""
+    return bool(BIRDER_MODELS.get(model_name, {}).get("naflex")) or "naflex_" in model_name
 
 
 class BirdClassifier:
@@ -47,7 +95,7 @@ class BirdClassifier:
 
     def __init__(
         self,
-        model_name: str = "birder-project/convnext_v2_tiny_eu-common",
+        model_name: str = DEFAULT_MODEL,
         translation_file: str | None = None,
         device: str | None = None
     ):
@@ -90,7 +138,15 @@ class BirdClassifier:
             self.model.to(self.device)
 
             size = birder.get_size_from_signature(self.model_info.signature)
-            self.transform = birder.classification_transform(size, self.model_info.rgb_stats)
+            if is_naflex_model(model_name):
+                # NaFlex models keep the native aspect ratio; token budget matches the reference size
+                patch_size = self.model.stem_stride
+                max_seq_len = (size[0] // patch_size) * (size[1] // patch_size)
+                self.transform = birder.naflex_transform(
+                    patch_size, max_seq_len, self.model_info.rgb_stats
+                )
+            else:
+                self.transform = birder.classification_transform(size, self.model_info.rgb_stats)
 
             self.id2label = dict(enumerate(self.model_info.class_to_idx.keys()))
             self.infer_func = infer_image
@@ -101,16 +157,31 @@ class BirdClassifier:
             raise ImportError("birder library not installed. Run: pip install birder") from err
 
     def _load_finetuned_weights(self) -> None:
-        """Load fine-tuned weights over the base model."""
+        """Load fine-tuned weights over the base model.
+
+        Weights are only applied when they were trained on the currently configured
+        base model; after a model switch they are ignored until training runs again.
+        """
         try:
+            meta = {}
+            if Path(FINETUNED_META).exists():
+                with open(FINETUNED_META) as f:
+                    meta = json.load(f)
+            base_model = meta.get("base_model")
+            # Weights saved before base_model was recorded were trained on the legacy default
+            if (base_model or LEGACY_MODEL) != self.model_name:
+                logger.warning(
+                    f"Ignoring fine-tuned weights: trained on '{base_model or LEGACY_MODEL}', "
+                    f"current model is '{self.model_name}'. Retrain to fine-tune the new model."
+                )
+                return
+
             state_dict = torch.load(FINETUNED_WEIGHTS, map_location=self.device,
                                     weights_only=True)
             self.model.load_state_dict(state_dict)
             self.model.eval()
 
-            if Path(FINETUNED_META).exists():
-                with open(FINETUNED_META) as f:
-                    meta = json.load(f)
+            if meta:
                 logger.info(
                     f"Loaded fine-tuned weights (trained on {meta.get('num_samples', '?')} "
                     f"samples, val_loss={meta.get('best_val_loss', '?')}, "
@@ -276,7 +347,7 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     translation_file = os.path.join(script_dir, "bird_names_nl.json")
 
-    model = os.environ.get("MODEL_NAME", "birder-project/convnext_v2_tiny_eu-common")
+    model = os.environ.get("MODEL_NAME", DEFAULT_MODEL)
     classifier = BirdClassifier(model_name=model, translation_file=translation_file)
 
     if len(sys.argv) > 1:

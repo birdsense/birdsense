@@ -1,6 +1,6 @@
 # Model Training
 
-Fine-tune the ConvNeXt V2 bird classification model using confirmed and corrected data from the classification log.
+Fine-tune the configured bird classification model (default: Birder ViT Parallel EU-Common) using confirmed and corrected data from the classification log.
 
 ## Training Data
 
@@ -28,11 +28,11 @@ All confirmed + corrected entries are pulled from the `classification_log` datab
 
 ### 3. Model Loading
 
-The pretrained ConvNeXt V2 Tiny model (707 European bird species, trained on thousands of images) is loaded. This model can already recognize birds — we're just making it *better* for your specific situation.
+The pretrained base model selected by `MODEL_NAME` (707 European bird species, trained on ~570k images) is loaded. This model can already recognize birds — we're just making it *better* for your specific situation.
 
 ### 4. Freeze Strategy
 
-- **Head-only** (default): All layers are frozen except the final classifier layer (~544K parameters). The model keeps its "knowledge of bird shapes" but re-learns the decision boundaries. Fast, works well with little data.
+- **Head-only** (default): All layers are frozen except the final classifier layer (~272K parameters for ViT Parallel, ~544K for ConvNeXt V2 / Hiera). The model keeps its "knowledge of bird shapes" but re-learns the decision boundaries. Fast, works well with little data.
 - **Full**: All layers are trained, but the backbone gets a 10x lower learning rate than the head. The model can learn more subtle patterns, but needs more data and takes longer.
 
 ### 5. Training Loop
@@ -57,9 +57,27 @@ After each epoch, the model is tested on the 20% validation data (without augmen
 
 If the `val_loss` of this epoch is lower than all previous ones, the weights are saved to `/data/models/finetuned_latest.pt`. This way you always keep the best model, not the last one.
 
+## Base Models
+
+Any `birder-project/*eu-common` model can be fine-tuned. They all share the same 707-species label set (same order), so logged labels and Dutch names keep working when you switch. Accuracy is top-1 on the eu-common validation set ([Birder leaderboard](https://huggingface.co/spaces/birder-project/leaderboard)); CPU latency is a rough single-image figure measured on a desktop CPU with 4 threads.
+
+| `MODEL_NAME` | Params | Accuracy | CPU latency | Download |
+|---|---|---|---|---|
+| `birder-project/vit_parallel_s16_18x2_ls_avg_data2vec-intermediate-eu-common` (default) | 65M | 98.0% | ~0.7 s | 259 MB |
+| `birder-project/hiera_abswin_base_mim-intermediate-eu-common` | 51M | 97.8% | ~0.5 s | 204 MB |
+| `birder-project/convnext_v2_tiny_intermediate-eu-common` | 28M | 97.4% | ~0.3 s | 114 MB |
+| `birder-project/convnext_v2_tiny_eu-common` (previous default) | 28M | 97.2% | ~0.3 s | 114 MB |
+| `birder-project/naflex_vit_reg4_so150m_p14_ls_dino-v2-bio-intermediate-eu-common` | 134M | 98.5% | ~1.5 s+ | 538 MB |
+
+Pretrained weights are downloaded on first start into `/data/models/birder` (the `birdsense-models` volume).
+
+Fine-tuned weights belong to one base model: `finetuned_meta.json` records `base_model`, and the classifier ignores the weights (with a warning in the log) when `MODEL_NAME` points to a different model. After switching models, start a training run (or confirm/correct a log entry, which triggers auto-training) to fine-tune the new model. To go back to the previous behaviour, set `MODEL_NAME=birder-project/convnext_v2_tiny_eu-common`.
+
+The NaFlex model uses native-aspect-ratio preprocessing at inference time; fine-tuning uses fixed 336x336 crops, which the model also supports.
+
 ## After Training
 
-The trained model is saved but **not yet active**. The current classifier still runs with the old weights. Only when you click **Reload Model**:
+When training is started from the API/UI or by auto-training, the running classifier is reloaded automatically once training finishes. If that reload fails, the weights are saved but **not yet active** until you click **Reload Model**:
 
 1. `classifier.reload_model()` is called
 2. The base model is reloaded

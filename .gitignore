@@ -34,3 +34,6 @@ models/*
 # Temporary files
 /tmp/
 *.tmp
+
+# Claude Code worktrees
+.claude/
