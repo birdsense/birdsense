@@ -274,7 +274,16 @@ How it behaves:
 - Loose ranges (`>=`) are pinned to exact versions, so every change arrives as an explicit PR.
 - CI (`ci.yml`) runs on every PR: ruff/pylint plus a Docker build of both images, which installs the full requirements.
 
-Auto-merge is **off**. To opt in for dev tooling (linters, pre-commit hooks, Actions; minor/patch only), set `"automerge": true` in the last `packageRules` entry of `renovate.json`. This needs *Allow auto-merge* enabled in the repo settings and branch protection on `main` that requires the CI checks, so nothing is merged unless CI is green.
+Non-major updates of Python deps, GitHub Actions and dev tooling are **auto-merged** once the required CI checks (Lint, Tests, Docker Build) pass on `main`'s branch protection. The ML stack and all major updates always need a manual merge.
+
+## Releases
+
+Every push to `main` that passes CI runs [semantic-release](https://semantic-release.gitbook.io/) (`.releaserc.json`). It reads the [Conventional Commits](https://www.conventionalcommits.org/) since the last tag and, when there is something to release, creates a `vX.Y.Z` tag and a GitHub Release with generated notes:
+
+- `fix:` / `perf:` → patch, `feat:` → minor, `!` or `BREAKING CHANGE:` → major
+- `chore:`, `docs:`, `style:`, `test:`, `ci:`, `refactor:` → no release
+
+Renovate uses `fix(deps):` for runtime dependencies (app requirements, Docker base images), so those cut a patch release, and `chore(deps):` for dev tooling. Git tags are the source of truth for the version; `pyproject.toml`'s version is not bumped.
 
 ## License
 

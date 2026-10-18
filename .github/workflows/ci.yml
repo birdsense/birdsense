@@ -112,3 +112,28 @@ jobs:
 
       - name: Check web dependencies
         run: safety check -r web/requirements.txt --output text || true
+
+  release:
+    name: Release
+    # Tag + GitHub Release from conventional commits, only after all checks pass on main
+    needs: [lint, test, docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx --yes semantic-release@24.2.3

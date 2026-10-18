@@ -40,6 +40,16 @@
   },
   "packageRules": [
     {
+      "description": "Runtime dependencies (app requirements + Docker base images) use fix(deps) so merging them cuts a patch release; dev tooling stays chore(deps)",
+      "matchFileNames": [
+        "bridge/requirements.txt",
+        "web/requirements.txt",
+        "bridge/Dockerfile",
+        "web/Dockerfile"
+      ],
+      "semanticCommitType": "fix"
+    },
+    {
       "description": "Label PRs by ecosystem",
       "matchManagers": [
         "pip_requirements"
@@ -74,7 +84,7 @@
       ]
     },
     {
-      "description": "Python app deps (bridge + web): one weekly PR for all minor/patch bumps",
+      "description": "Python app deps (bridge + web): one weekly PR for all minor/patch bumps, auto-merged when CI is green (ML stack excluded below)",
       "matchManagers": [
         "pip_requirements"
       ],
@@ -83,7 +93,8 @@
         "patch",
         "pin"
       ],
-      "groupName": "python dependencies (non-major)"
+      "groupName": "python dependencies (non-major)",
+      "automerge": true
     },
     {
       "description": "ML stack: own group, never auto-merged, always reviewed. Bumps can change model behaviour/accuracy or break the CPU torch wheel index.",
@@ -157,7 +168,7 @@
       "dependencyDashboardApproval": true
     },
     {
-      "description": "GitHub Actions: one weekly PR for non-major bumps",
+      "description": "GitHub Actions: one weekly PR for non-major bumps, auto-merged when CI is green",
       "matchManagers": [
         "github-actions"
       ],
@@ -166,7 +177,8 @@
         "patch",
         "digest"
       ],
-      "groupName": "github-actions (non-major)"
+      "groupName": "github-actions (non-major)",
+      "automerge": true
     },
     {
       "description": "Keep ruff in CI (requirements-dev.txt) and pre-commit in lockstep",
@@ -187,7 +199,7 @@
       "groupName": "pre-commit hooks"
     },
     {
-      "description": "OPT-IN auto-merge for dev tooling patch/minor updates (linters, pre-commit hooks, GitHub Actions). Set automerge to true to enable; requires 'Allow auto-merge' and branch protection with required CI checks.",
+      "description": "Auto-merge dev tooling patch/minor updates (linters, pre-commit hooks, GitHub Actions) when CI is green",
       "matchFileNames": [
         "requirements-dev.txt",
         ".pre-commit-config.yaml",
@@ -198,9 +210,11 @@
         "patch",
         "digest"
       ],
-      "automerge": false,
+      "automerge": true,
       "automergeType": "pr",
       "platformAutomerge": true
     }
-  ]
+  ],
+  "automergeType": "pr",
+  "platformAutomerge": true
 }
