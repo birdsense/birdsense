@@ -257,6 +257,25 @@ Set environment variables in `.env`:
 | `IMAGE_DIR` | Directory for saved images | `/data/images` |
 | `MAX_IMAGE_SIZE` | Max image size in bytes | `10485760` (10MB) |
 
+## Dependency updates
+
+Dependencies are kept current by [Renovate](https://docs.renovatebot.com/) (`renovate.json`). It covers:
+
+- **pip**: `bridge/requirements.txt`, `web/requirements.txt`, `requirements-dev.txt` (ruff/pylint used by CI)
+- **Docker**: base images in `bridge/Dockerfile` and `web/Dockerfile` (and `docker-compose.yml` if images are added)
+- **GitHub Actions** in `.github/workflows/`
+- **pre-commit** hook revisions in `.pre-commit-config.yaml`
+
+How it behaves:
+
+- Runs weekly (Monday before 06:00 Europe/Amsterdam); security fixes are opened immediately.
+- Non-major updates are grouped per ecosystem (one PR for Python deps, one for Actions, one for pre-commit hooks; ruff in CI and pre-commit is updated together).
+- The **ML stack** (torch, torchvision, transformers, birder, ...) gets its own PR, waits 7 days after a release, and is never auto-merged. Major ML updates and Python base image bumps (e.g. 3.11 to 3.12) only open after approval on the *Dependency Dashboard* issue.
+- Loose ranges (`>=`) are pinned to exact versions, so every change arrives as an explicit PR.
+- CI (`ci.yml`) runs on every PR: ruff/pylint plus a Docker build of both images, which installs the full requirements.
+
+Auto-merge is **off**. To opt in for dev tooling (linters, pre-commit hooks, Actions; minor/patch only), set `"automerge": true` in the last `packageRules` entry of `renovate.json`. This needs *Allow auto-merge* enabled in the repo settings and branch protection on `main` that requires the CI checks, so nothing is merged unless CI is green.
+
 ## License
 
 MIT

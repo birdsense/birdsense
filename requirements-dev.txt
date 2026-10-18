@@ -1,0 +1,4 @@
+# Dev/CI tooling. Pinned so updates arrive as explicit Renovate PRs.
+# Keep ruff in sync with .pre-commit-config.yaml (Renovate groups them).
+ruff==0.17.1
+pylint==4.1.3
