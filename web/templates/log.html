@@ -390,18 +390,141 @@
             pointer-events: none;
         }
 
+        .log-title {
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .log-title .icon {
+            display: inline-flex;
+        }
+        .train-banner {
+            background: rgba(59,130,246,0.12);
+            border: 1px solid rgba(59,130,246,0.3);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            color: #60a5fa;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .log-info {
+            min-width: 0;
+        }
+        .log-species,
+        .log-species-corrected,
+        .prediction-chip {
+            overflow-wrap: anywhere;
+        }
+        .btn-confirm, .btn-correct {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.375rem;
+        }
+        .correction-form {
+            max-height: calc(100vh - 2rem);
+            max-height: calc(100dvh - 2rem);
+            overflow-y: auto;
+        }
+        .correction-form-close {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 44px;
+            min-height: 44px;
+        }
+
+        @media (max-width: 768px) {
+            .log-title {
+                font-size: 1.5rem;
+                margin-bottom: 1rem;
+            }
+            .filter-tabs {
+                gap: 0.4rem;
+                margin-bottom: 1rem;
+            }
+            .filter-tab {
+                display: inline-flex;
+                align-items: center;
+                min-height: 44px;
+                padding: 0.5rem 0.85rem;
+            }
+            .pagination {
+                flex-wrap: wrap;
+                align-items: center;
+            }
+            .pagination a {
+                display: inline-flex;
+                align-items: center;
+                min-height: 44px;
+            }
+            .prediction-chip {
+                padding: 0.4rem 0.6rem;
+            }
+            .btn-confirm, .btn-correct {
+                min-height: 44px;
+            }
+            /* Modal sits near the top so the on-screen keyboard
+               doesn't cover the species input / autocomplete */
+            .correction-modal {
+                align-items: flex-start;
+                padding-top: 1rem;
+            }
+            .correction-form {
+                padding: 1.25rem;
+                width: calc(100% - 1.5rem);
+            }
+            .correction-form input,
+            .correction-form textarea {
+                font-size: 16px; /* prevents iOS zoom-on-focus */
+            }
+            .autocomplete-item {
+                min-height: 44px;
+            }
+            .correction-form .btn-group {
+                flex-direction: column-reverse;
+            }
+            .correction-form .btn-cancel,
+            .correction-form .btn-save {
+                width: 100%;
+                min-height: 48px;
+                font-size: 1rem;
+            }
+        }
+
         @media (max-width: 640px) {
             .log-entry {
-                grid-template-columns: 80px 1fr;
+                grid-template-columns: 80px minmax(0, 1fr);
+                gap: 0.75rem;
+                padding: 0.75rem;
             }
             .log-actions {
-                grid-column: span 2;
+                grid-column: 1 / -1;
                 flex-direction: row;
-                justify-content: flex-end;
+                min-width: 0;
             }
-            .log-image {
+            .log-actions:not(:has(button)) {
+                display: none;
+            }
+            .btn-confirm, .btn-correct {
+                flex: 1;
+                min-height: 44px;
+                font-size: 0.95rem;
+            }
+            .log-image,
+            .log-image-placeholder {
                 width: 80px;
                 height: 80px;
+            }
+            .log-species {
+                font-size: 1rem;
+            }
+            .log-meta {
+                gap: 0.4rem 0.75rem;
             }
         }
     </style>
@@ -424,13 +547,13 @@
     </nav>
 
     <div class="container">
-        <h1 style="margin-bottom: 1.5rem; color: var(--text-primary);">
+        <h1 class="log-title">
             <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></span>
             Classification Log
         </h1>
 
         <!-- Auto-training status banner -->
-        <div id="trainBanner" style="display:none; background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); border-radius: 0.5rem; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.85rem; color: #60a5fa; display: flex; align-items: center; gap: 0.5rem;">
+        <div id="trainBanner" class="train-banner" style="display:none;">
             <span id="trainSpinner" style="display:inline-block; width:14px; height:14px; border: 2px solid rgba(96,165,250,0.3); border-top-color: #60a5fa; border-radius:50%; animation: spin 1s linear infinite;"></span>
             <span id="trainMessage">Training model...</span>
             <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
