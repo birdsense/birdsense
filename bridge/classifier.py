@@ -6,6 +6,7 @@ Uses birder-project EU-common models for European bird species classification
 
 import json
 import logging
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -102,6 +103,9 @@ class BirdClassifier:
         self.model_name = model_name
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.is_birder_model = model_name.startswith("birder-project/")
+        # Guards the model state: classify() holds it during inference and
+        # reload_model() holds it only to swap in a fully loaded model.
+        self._lock = threading.Lock()
 
         logger.info(f"Loading model: {model_name}")
         logger.info(f"Using device: {self.device}")
@@ -193,12 +197,25 @@ class BirdClassifier:
             logger.warning(f"Failed to load fine-tuned weights, using base model: {e}")
 
     def reload_model(self) -> bool:
-        """Reload the model, picking up fine-tuned weights if available."""
+        """Reload the model, picking up fine-tuned weights if available.
+
+        The new model is loaded into a separate object first, so classify()
+        keeps using the old model until the swap and never sees a half-loaded one.
+        """
         try:
-            if self.is_birder_model:
-                self._load_birder_model(self.model_name)
+            fresh = BirdClassifier.__new__(BirdClassifier)
+            fresh.model_name = self.model_name
+            fresh.device = self.device
+            fresh.is_birder_model = self.is_birder_model
+            if fresh.is_birder_model:
+                fresh._load_birder_model(fresh.model_name)
             else:
-                self._load_transformers_model(self.model_name)
+                fresh._load_transformers_model(fresh.model_name)
+
+            with self._lock:
+                for attr in ('model', 'model_info', 'transform', 'id2label', 'infer_func', 'processor'):
+                    if hasattr(fresh, attr):
+                        setattr(self, attr, getattr(fresh, attr))
             logger.info("Model reloaded successfully")
             return True
         except Exception as e:
@@ -234,10 +251,11 @@ class BirdClassifier:
     def classify(self, image_path: str) -> dict[str, Any] | None:
         try:
             start_time = time.time()
-            if self.is_birder_model:
-                result = self._classify_birder(image_path)
-            else:
-                result = self._classify_transformers(image_path)
+            with self._lock:
+                if self.is_birder_model:
+                    result = self._classify_birder(image_path)
+                else:
+                    result = self._classify_transformers(image_path)
 
             if result:
                 inference_ms = int((time.time() - start_time) * 1000)
