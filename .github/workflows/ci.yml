@@ -123,6 +123,8 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -137,3 +139,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx --yes semantic-release@24.2.3
+
+      # semantic-release tags HEAD locally when it publishes a release.
+      - name: Detect new release tag
+        id: tag
+        run: |
+          tag="$(git tag --points-at HEAD --list 'v*' | sort -V | tail -1)"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "New release tag: ${tag:-none}"
+
+  publish:
+    name: Publish images
+    needs: [release]
+    if: needs.release.outputs.tag != ''
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/publish.yml
+    with:
+      tag: ${{ needs.release.outputs.tag }}
